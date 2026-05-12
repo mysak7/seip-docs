@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEIP — Azure Architecture Blueprint</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #50e6ff; --green: #3fb950;
+    --yellow: #d29922; --red: #f85149; --orange: #fb8500; --purple: #bc8cff;
+    --teal: #39d353; --azure: #0078d4; --azure-light: #50e6ff;
+    --tag-bg: #0d2a40; --tag-text: #50e6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+  header { background: linear-gradient(135deg, #0d1117 0%, #0d1f33 60%, #0d2a40 100%); border-bottom: 1px solid #1a3a5c; padding: 48px 32px 36px; position: relative; overflow: hidden; }
+  header::before { content: ''; position: absolute; top: -80px; right: -80px; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(80,230,255,0.07) 0%, transparent 70%); pointer-events: none; }
+  .header-inner { max-width: 1100px; margin: 0 auto; position: relative; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,120,212,0.15); color: var(--azure-light); border: 1px solid rgba(0,120,212,0.4); padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 14px; }
+  .badge::before { content: '☁️'; font-size: 11px; }
+  h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.5px; }
+  h1 span { color: var(--azure-light); }
+  .subtitle { color: var(--muted); font-size: 1.05rem; margin-top: 8px; max-width: 620px; }
+  .meta-row { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
+  .meta-item { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.85rem; }
+  .meta-item strong { color: var(--text); }
+
+  .nav-wrap { background: var(--bg2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  nav { max-width: 1100px; margin: 0 auto; display: flex; gap: 2px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  .tab { padding: 14px 18px; background: none; border: none; cursor: pointer; color: var(--muted); font-size: 0.88rem; font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.18s; display: flex; align-items: center; gap: 7px; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--azure-light); border-bottom-color: var(--azure-light); }
+  .tab-icon { font-size: 15px; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; color: var(--azure-light); }
+  h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+  p { color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
+  p strong { color: var(--text); }
+  .section-lead { color: var(--muted); font-size: 0.95rem; margin-bottom: 28px; }
+
+  .cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin-bottom: 32px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; transition: border-color 0.2s, transform 0.2s; }
+  .card:hover { border-color: #484f58; transform: translateY(-2px); }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .card-icon { font-size: 20px; }
+  .card h3 { margin: 0; font-size: 1rem; color: var(--text); }
+  .card p { font-size: 0.875rem; margin-bottom: 0; }
+  .card.accent-green { border-left: 3px solid var(--green); }
+  .card.accent-blue { border-left: 3px solid var(--azure-light); }
+  .card.accent-yellow { border-left: 3px solid var(--yellow); }
+  .card.accent-red { border-left: 3px solid var(--red); }
+  .card.accent-purple { border-left: 3px solid var(--purple); }
+  .card.accent-teal { border-left: 3px solid var(--teal); }
+  .card.accent-orange { border-left: 3px solid var(--orange); }
+  .card.accent-azure { border-left: 3px solid var(--azure); }
+
+  .pipeline { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; overflow-x: auto; margin-bottom: 32px; }
+  .pipeline-row { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; min-width: 600px; }
+  .pnode { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; text-align: center; flex-shrink: 0; min-width: 110px; }
+  .pnode .label { font-size: 0.78rem; font-weight: 600; color: var(--text); }
+  .pnode .sublabel { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .pnode.hl-green { border-color: var(--green); background: rgba(63,185,80,0.07); }
+  .pnode.hl-blue { border-color: var(--azure-light); background: rgba(80,230,255,0.07); }
+  .pnode.hl-yellow { border-color: var(--yellow); background: rgba(210,153,34,0.07); }
+  .pnode.hl-purple { border-color: var(--purple); background: rgba(188,140,255,0.07); }
+  .pnode.hl-azure { border-color: var(--azure); background: rgba(0,120,212,0.1); }
+  .arrow { color: var(--muted); font-size: 1.2rem; padding: 0 6px; flex-shrink: 0; }
+  .fork { display: flex; flex-direction: column; gap: 8px; }
+
+  .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+  .compare-table th { background: var(--bg3); color: var(--muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 14px; text-align: left; border: 1px solid var(--border); }
+  .compare-table td { padding: 10px 14px; border: 1px solid var(--border); font-size: 0.86rem; color: var(--muted); vertical-align: top; }
+  .compare-table td strong { color: var(--text); }
+  .compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .win { color: var(--green); font-weight: 600; }
+  .lose { color: var(--red); }
+  .neutral { color: var(--yellow); }
+  .az { color: var(--azure-light); font-weight: 600; }
+
+  .risks { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+  .risk { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: start; }
+  .risk-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+  .risk-badge.high { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+  .risk-badge.med  { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .risk-badge.low  { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .risk-body h4 { font-size: 0.95rem; color: var(--text); margin-bottom: 4px; }
+  .risk-body p { font-size: 0.84rem; margin-bottom: 0; }
+  .risk-fix { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; min-width: 200px; max-width: 260px; }
+  .risk-fix .fix-label { color: var(--azure-light); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 4px; }
+  .risk-fix p { font-size: 0.8rem; margin: 0; }
+  @media(max-width: 700px) { .risk { grid-template-columns: 1fr; } .risk-fix { max-width: 100%; } }
+
+  .sec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .sec-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .sec-item h4 { color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .sec-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .sec-dot.ok { background: var(--green); }
+  .sec-dot.warn { background: var(--yellow); }
+  .sec-dot.bad { background: var(--red); }
+  .sec-item p { font-size: 0.84rem; margin-bottom: 0; }
+
+  .roadmap { position: relative; padding-left: 28px; margin-bottom: 28px; }
+  .roadmap::before { content: ''; position: absolute; left: 9px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .milestone { position: relative; margin-bottom: 24px; }
+  .milestone::before { content: ''; position: absolute; left: -23px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--azure-light); border: 2px solid var(--bg); }
+  .milestone.done::before { background: var(--green); }
+  .milestone.planned::before { background: var(--border); }
+  .milestone h4 { font-size: 0.95rem; color: var(--text); }
+  .ms-label { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; margin-left: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ms-label.done { background: rgba(63,185,80,0.15); color: var(--green); }
+  .ms-label.active { background: rgba(80,230,255,0.15); color: var(--azure-light); }
+  .ms-label.planned { background: rgba(139,148,158,0.15); color: var(--muted); }
+  .milestone p { font-size: 0.84rem; margin-top: 4px; margin-bottom: 0; }
+
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .stack-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: flex; align-items: flex-start; gap: 12px; }
+  .stack-icon { font-size: 22px; flex-shrink: 0; }
+  .stack-item h4 { font-size: 0.88rem; color: var(--text); margin-bottom: 2px; }
+  .stack-item p { font-size: 0.78rem; margin-bottom: 0; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .tag { background: var(--tag-bg); color: var(--tag-text); padding: 3px 10px; border-radius: 14px; font-size: 0.78rem; font-weight: 500; border: 1px solid rgba(80,230,255,0.2); }
+
+  .score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .score-label { font-size: 0.84rem; color: var(--muted); min-width: 200px; }
+  .score-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 8px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+  .score-fill.g { background: var(--green); }
+  .score-fill.y { background: var(--yellow); }
+  .score-fill.r { background: var(--red); }
+  .score-fill.b { background: var(--azure-light); }
+  .score-val { font-size: 0.84rem; color: var(--text); font-weight: 600; min-width: 32px; text-align: right; }
+
+  pre { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 0.82rem; color: #a8d3f5; line-height: 1.55; margin-bottom: 20px; }
+  code { font-family: 'SF Mono', 'Consolas', 'Fira Code', monospace; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+  .callout { border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start; font-size: 0.88rem; }
+  .callout.info { background: rgba(80,230,255,0.06); border: 1px solid rgba(80,230,255,0.22); color: #a5e8ff; }
+  .callout.warn { background: rgba(210,153,34,0.08); border: 1px solid rgba(210,153,34,0.25); color: #e3c577; }
+  .callout.tip  { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.25); color: #87d99e; }
+  .callout-icon { font-size: 16px; flex-shrink: 0; padding-top: 1px; }
+  .callout p { margin: 0; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  @media(max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+  .box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .box h4 { font-size: 0.9rem; color: var(--text); margin-bottom: 10px; }
+  .box ul { padding-left: 18px; }
+  .box li { font-size: 0.84rem; color: var(--muted); margin-bottom: 5px; }
+  .box li strong { color: var(--text); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  @media print { .nav-wrap { position: static; } .panel { display: block !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="badge">Azure Migration Blueprint</div>
+    <h1><span>SEIP</span> — Azure Architecture</h1>
+    <p class="subtitle">Complete 1:1 mapping of the AWS-based SEIP platform onto Azure-native services. All 12 microservices, the event pipeline, autoscaling, and identity layers redesigned for Azure.</p>
+    <div class="meta-row">
+      <div class="meta-item">📅 <strong>May 2026</strong></div>
+      <div class="meta-item">☁️ <strong>Azure Germany West Central</strong></div>
+      <div class="meta-item">🐳 <strong>12 Microservices</strong></div>
+      <div class="meta-item">⚙️ <strong>Terraform AzureRM</strong></div>
+      <div class="meta-item">🤖 <strong>Multi-LLM (Azure OpenAI + Vertex AI + Gemini)</strong></div>
+    </div>
+  </div>
+</header>
+
+<div class="nav-wrap">
+  <nav id="nav">
+    <button class="tab active" data-panel="overview"><span class="tab-icon">🗺️</span> Overview</button>
+    <button class="tab" data-panel="pipeline"><span class="tab-icon">⚡</span> Pipeline</button>
+    <button class="tab" data-panel="mapping"><span class="tab-icon">🔀</span> Component Map</button>
+    <button class="tab" data-panel="networking"><span class="tab-icon">🌐</span> Networking</button>
+    <button class="tab" data-panel="aks"><span class="tab-icon">☸️</span> AKS &amp; Scale</button>
+    <button class="tab" data-panel="data"><span class="tab-icon">🗄️</span> Data Layer</button>
+    <button class="tab" data-panel="identity"><span class="tab-icon">🔑</span> Identity</button>
+    <button class="tab" data-panel="monitoring"><span class="tab-icon">📊</span> Monitoring</button>
+    <button class="tab" data-panel="migration"><span class="tab-icon">🚀</span> Migration Plan</button>
+    <button class="tab" data-panel="scores"><span class="tab-icon">⚖️</span> AWS vs Azure</button>
+  </nav>
+</div>
+
+<main>
+
+<!-- ═══════ OVERVIEW ═══════ -->
+<section class="panel active" id="overview">
+  <h2>Azure System Overview</h2>
+  <p class="section-lead">SEIP on Azure uses Azure Event Hubs (Kafka-compatible) for event ingestion, Cosmos DB for NoSQL storage, AKS with Node Auto Provisioning (Karpenter for Azure) for Kubernetes workloads, KEDA with Azure Monitor triggers for event-driven scaling, and Azure Managed Identity everywhere — replacing IAM roles and instance profiles.</p>
+
+  <div class="callout info">
+    <span class="callout-icon">ℹ️</span>
+    <p>Target region: <strong>germanywestcentral</strong> (Frankfurt) — Azure's closest equivalent to AWS eu-central-1. All services have data residency in Germany and comply with EU data sovereignty requirements.</p>
+  </div>
+
+  <h3>Core Azure Services</h3>
+  <div class="cards">
+    <div class="card accent-azure">
+      <div class="card-header"><span class="card-icon">🌐</span><h3>Azure Virtual Network</h3></div>
+      <p>10.0.0.0/16 VNet with Bastion subnet, public subnet, and two private subnets across two AZs. NAT Gateway for outbound, NSGs for traffic control, Private Endpoints for all PaaS.</p>
+    </div>
+    <div class="card accent-blue">
+      <div class="card-header"><span class="card-icon">☸️</span><h3>AKS + NAP + KEDA</h3></div>
+      <p>AKS cluster with Node Auto Provisioning (Karpenter for Azure) provisioning Spot VMs on demand. KEDA watches Azure Monitor custom metric <code>UnprocessedEvents</code> and scales pods 0→5.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-header"><span class="card-icon">⚡</span><h3>Azure Event Hubs</h3></div>
+      <p>Kafka-compatible event streaming. Windows Fluent Bit agents connect with zero code change — only the bootstrap server and SASL credentials change. Standard tier, 1 Throughput Unit.</p>
+    </div>
+    <div class="card accent-purple">
+      <div class="card-header"><span class="card-icon">🗄️</span><h3>Cosmos DB for NoSQL</h3></div>
+      <p>Serverless tier replaces DynamoDB PAY_PER_REQUEST. Two containers: <code>security-events</code> and <code>seip-patterns</code>. Built-in TTL, composite indexing replaces GSIs.</p>
+    </div>
+    <div class="card accent-teal">
+      <div class="card-header"><span class="card-icon">🖥️</span><h3>App VM + VMSS</h3></div>
+      <p><strong>Standard_D2as_v5</strong> (ARM64) app VM hosts all Docker services. <strong>Standard_B2s</strong> VMSS (0–5) for Deep Mind workers, autoscaled via Azure Monitor custom metrics.</p>
+    </div>
+    <div class="card accent-orange">
+      <div class="card-header"><span class="card-icon">📦</span><h3>Azure Container Registry</h3></div>
+      <p>Standard-tier ACR replaces ECR. Managed Identity pull — no credentials in containers. Scan-on-push via Microsoft Defender for Containers. Retention policies via lifecycle rules.</p>
+    </div>
+    <div class="card accent-yellow">
+      <div class="card-header"><span class="card-icon">🔑</span><h3>Managed Identity + Key Vault</h3></div>
+      <p>User Assigned Managed Identity for app VM. AKS Workload Identity (OIDC) replaces IRSA for KEDA and app pods. Key Vault stores secrets and the Lua signing key.</p>
+    </div>
+    <div class="card accent-red">
+      <div class="card-header"><span class="card-icon">🤖</span><h3>Azure OpenAI + Multi-LLM</h3></div>
+      <p>Azure OpenAI (GPT-4o, GPT-4o-mini) added as a "bridge" provider in seip-models. Vertex AI and Gemini direct API remain unchanged. Bedrock dependency eliminated.</p>
+    </div>
+  </div>
+
+  <h3>Key Differences from AWS</h3>
+  <div class="two-col">
+    <div class="box">
+      <h4>What changes</h4>
+      <ul>
+        <li><strong>fck-nat → NAT Gateway + Azure Bastion</strong>: managed outbound NAT, browser-based SSH</li>
+        <li><strong>DynamoDB → Cosmos DB</strong>: NoSQL API, partition key model is compatible</li>
+        <li><strong>ECR → ACR</strong>: Managed Identity pull, no image pull secrets</li>
+        <li><strong>IAM Roles/IRSA → Managed Identity + Workload Identity</strong></li>
+        <li><strong>CloudWatch → Azure Monitor + Log Analytics</strong></li>
+        <li><strong>EventBridge + SQS → Event Grid + Service Bus</strong> (for Karpenter NAP interruptions)</li>
+        <li><strong>Bedrock → Azure OpenAI</strong> (added as bridge provider)</li>
+        <li><strong>SSM Run Command → Azure Run Command</strong></li>
+        <li><strong>S3 → Blob Storage</strong> (Lua filters, public container)</li>
+        <li><strong>CUR → Cost Management API</strong> (seip-money integration)</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>What stays the same</h4>
+      <ul>
+        <li><strong>All 12 Docker containers</strong>: unchanged images, same ports</li>
+        <li><strong>Kafka consumer code</strong>: only bootstrap server changes</li>
+        <li><strong>Karpenter NodePool/NodeClass YAML</strong>: same CRDs on AKS NAP</li>
+        <li><strong>KEDA operator + ScaledObject pattern</strong>: trigger type changes</li>
+        <li><strong>Terraform structure</strong>: modules pattern preserved</li>
+        <li><strong>Fluent Bit on Windows agents</strong>: output plugin config only</li>
+        <li><strong>Vertex AI / Gemini</strong>: no change in seip-models</li>
+        <li><strong>Lua filter logic</strong>: identical Lua scripts</li>
+        <li><strong>DynamoDB claim mechanism</strong>: replicated in Cosmos DB</li>
+        <li><strong>GitHub Actions OIDC</strong>: federated identity, different audience</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Azure Resource Naming</h3>
+  <div class="stack-grid">
+    <div class="stack-item"><span class="stack-icon">📁</span><div><h4>Resource Group</h4><p><code>seip-dev-rg</code> — germanywestcentral</p></div></div>
+    <div class="stack-item"><span class="stack-icon">🌐</span><div><h4>Virtual Network</h4><p><code>seip-dev-vnet</code> — 10.0.0.0/16</p></div></div>
+    <div class="stack-item"><span class="stack-icon">☸️</span><div><h4>AKS Cluster</h4><p><code>seip-dev-aks</code> — system nodepool</p></div></div>
+    <div class="stack-item"><span class="stack-icon">🗄️</span><div><h4>Cosmos DB Account</h4><p><code>seip-dev-cosmos</code> — serverless</p></div></div>
+    <div class="stack-item"><span class="stack-icon">⚡</span><div><h4>Event Hubs Namespace</h4><p><code>seip-dev-eventhubs</code></p></div></div>
+    <div class="stack-item"><span class="stack-icon">📦</span><div><h4>Container Registry</h4><p><code>seipdevacr</code> — Standard tier</p></div></div>
+    <div class="stack-item"><span class="stack-icon">🔑</span><div><h4>Key Vault</h4><p><code>seip-dev-kv</code></p></div></div>
+    <div class="stack-item"><span class="stack-icon">📊</span><div><h4>Log Analytics Workspace</h4><p><code>seip-dev-law</code> — 30 day retention</p></div></div>
+  </div>
+</section>
+
+<!-- ═══════ PIPELINE ═══════ -->
+<section class="panel" id="pipeline">
+  <h2>Event Pipeline on Azure</h2>
+  <p class="section-lead">Windows Sysmon events flow through Azure Event Hubs into Cosmos DB, are processed by the Deep Mind VMSS, and drive KEDA-managed pod scaling on AKS — all observed through Azure Monitor.</p>
+
+  <h3>Ingestion Path</h3>
+  <div class="pipeline">
+    <div class="pipeline-row">
+      <div class="pnode hl-green"><div class="label">Windows Agent</div><div class="sublabel">Sysmon + Fluent Bit</div></div>
+      <div class="arrow">→</div>
+      <div class="pnode hl-azure"><div class="label">Event Hubs</div><div class="sublabel">Kafka endpoint :9093</div></div>
+      <div class="arrow">→</div>
+      <div class="pnode hl-blue"><div class="label">seip-kafka-consumer</div><div class="sublabel">app VM container</div></div>
+      <div class="arrow">→</div>
+      <div class="pnode hl-purple"><div class="label">Cosmos DB</div><div class="sublabel">security-events</div></div>
+    </div>
+  </div>
+
+  <h3>AI Analysis Path</h3>
+  <div class="pipeline">
+    <div class="pipeline-row">
+      <div class="pnode hl-purple"><div class="label">Cosmos DB</div><div class="sublabel">unprocessed items</div></div>
+      <div class="arrow">→</div>
+      <div class="pnode hl-yellow"><div class="label">VMSS Workers</div><div class="sublabel">seip-deep-mind × 0-5</div></div>
+      <div class="arrow">→</div>
+      <div class="pnode hl-azure"><div class="label">Azure Monitor</div><div class="sublabel">UnprocessedEvents metric</div></div>
+      <div class="arrow">→</div>
+      <div class="pnode hl-blue"><div class="label">KEDA ScaledObject</div><div class="sublabel">AKS Orchestrator</div></div>
+      <div class="arrow">→</div>
+      <div class="pnode hl-green"><div class="label">Karpenter/NAP</div><div class="sublabel">Spot VM provisioned</div></div>
+    </div>
+  </div>
+
+  <h3>LLM Analysis Path</h3>
+  <div class="pipeline">
+    <div class="pipeline-row">
+      <div class="pnode hl-yellow"><div class="label">seip-deep-mind</div><div class="sublabel">hash + KNN triage</div></div>
+      <div class="arrow">→</div>
+      <div class="pnode hl-blue"><div class="label">seip-models</div><div class="sublabel">port 8184</div></div>
+      <div class="arrow">→</div>
+      <div class="fork">
+        <div class="pnode hl-azure"><div class="label">Azure OpenAI</div><div class="sublabel">GPT-4o bridge</div></div>
+        <div class="pnode hl-purple"><div class="label">Vertex AI</div><div class="sublabel">Gemini 3 Flash/Pro</div></div>
+        <div class="pnode hl-green"><div class="label">Gemini API</div><div class="sublabel">direct call</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>App VM Services</h3>
+  <div class="pipeline">
+    <div class="pipeline-row">
+      <div class="pnode hl-blue"><div class="label">seip-orchestrator</div><div class="sublabel">AKS + VMSS mgmt</div></div>
+      <div class="arrow">·</div>
+      <div class="pnode hl-azure"><div class="label">seip-manager</div><div class="sublabel">Lua → Blob Storage</div></div>
+      <div class="arrow">·</div>
+      <div class="pnode hl-green"><div class="label">seip-gui / easy</div><div class="sublabel">web dashboards</div></div>
+      <div class="arrow">·</div>
+      <div class="pnode hl-purple"><div class="label">seip-money</div><div class="sublabel">Cost Management API</div></div>
+      <div class="arrow">·</div>
+      <div class="pnode hl-yellow"><div class="label">seip-mcp</div><div class="sublabel">port 8765 public</div></div>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <p>The seip-mcp server (port 8765) is exposed directly on the app VM's public IP with an NSG rule. This replaces the fck-nat DNAT iptables approach — simpler and more transparent on Azure.</p>
+  </div>
+</section>
+
+<!-- ═══════ COMPONENT MAP ═══════ -->
+<section class="panel" id="mapping">
+  <h2>AWS → Azure Component Mapping</h2>
+  <p class="section-lead">Every AWS component has a direct Azure equivalent. Color coding: <span class="win">green</span> = Azure wins, <span class="neutral">yellow</span> = comparable, <span class="lose">red</span> = AWS wins.</p>
+
+  <table class="compare-table">
+    <thead>
+      <tr><th>Layer</th><th>AWS Component</th><th>Azure Equivalent</th><th>Delta</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Network</strong></td><td>VPC + subnets</td><td class="az">Azure VNet + subnets</td><td class="neutral">Comparable</td><td>Azure subnets lack native public/private concept — use NSGs + route tables</td></tr>
+      <tr><td></td><td>Internet Gateway</td><td class="az">Built-in (no resource)</td><td class="win">Azure wins</td><td>Public IPs route automatically — no gateway resource needed</td></tr>
+      <tr><td></td><td>fck-nat (t3.micro NAT instance)</td><td class="az">Azure NAT Gateway</td><td class="win">Azure wins</td><td>Fully managed, no bastion function bundled. Bastion is separate.</td></tr>
+      <tr><td></td><td>fck-nat SSH Bastion</td><td class="az">Azure Bastion (Standard)</td><td class="win">Azure wins</td><td>Browser-based RDP/SSH, no public key management. ~$0.19/hr.</td></tr>
+      <tr><td></td><td>Security Groups</td><td class="az">Network Security Groups</td><td class="neutral">Comparable</td><td>NSGs are subnet-level + NIC-level; SGs are instance-level</td></tr>
+      <tr><td></td><td>Route Tables</td><td class="az">Route Tables (UDR)</td><td class="neutral">Comparable</td><td>User-Defined Routes same concept, different UI</td></tr>
+      <tr><td><strong>Compute</strong></td><td>EC2 t4g.small (arm64)</td><td class="az">Standard_D2as_v5 (arm64)</td><td class="neutral">Comparable</td><td>2 vCPU, 8 GiB. ARM64 available in germanywestcentral.</td></tr>
+      <tr><td></td><td>EC2 t3.micro (ASG workers)</td><td class="az">Standard_B2s (VMSS)</td><td class="neutral">Comparable</td><td>2 vCPU, 4 GiB. Azure VMSS replaces ASG + Launch Template.</td></tr>
+      <tr><td></td><td>ASG Target Tracking Policy</td><td class="az">VMSS Autoscale Profile</td><td class="neutral">Comparable</td><td>Azure Monitor custom metric trigger; same target=30 threshold</td></tr>
+      <tr><td></td><td>EC2 Launch Template</td><td class="az">VMSS Custom Data</td><td class="neutral">Comparable</td><td>cloud-init script replaces user_data.sh template</td></tr>
+      <tr><td><strong>Kubernetes</strong></td><td>EKS Control Plane</td><td class="az">AKS Managed Cluster</td><td class="win">Azure wins</td><td>No control plane cost on AKS (free tier). EKS costs $0.10/hr.</td></tr>
+      <tr><td></td><td>EKS Managed Node Group (system)</td><td class="az">AKS System Node Pool</td><td class="neutral">Comparable</td><td>Standard_D2s_v5, 1–3 nodes; hosts Karpenter + KEDA controllers</td></tr>
+      <tr><td></td><td>Karpenter (EC2NodeClass)</td><td class="az">AKS NAP (AKSNodeClass)</td><td class="neutral">Comparable</td><td>NAP uses same Karpenter CRDs; AKSNodeClass replaces EC2NodeClass</td></tr>
+      <tr><td></td><td>Karpenter SQS interruption queue</td><td class="az">Event Grid → Service Bus</td><td class="neutral">Comparable</td><td>Spot VM eviction → Event Grid → Service Bus Queue → NAP controller</td></tr>
+      <tr><td></td><td>KEDA (cloudwatch trigger)</td><td class="az">KEDA (azure-monitor trigger)</td><td class="neutral">Comparable</td><td>Same operator, different trigger type. ScaledObject YAML mostly same.</td></tr>
+      <tr><td></td><td>IRSA (OIDC pod identity)</td><td class="az">AKS Workload Identity</td><td class="neutral">Comparable</td><td>Same OIDC mechanism; pod annotation replaces eks.amazonaws.com/role-arn</td></tr>
+      <tr><td></td><td>EBS CSI Driver</td><td class="az">Azure Disk CSI (built-in)</td><td class="win">Azure wins</td><td>Pre-installed on AKS, no extra addon configuration</td></tr>
+      <tr><td><strong>Containers</strong></td><td>ECR</td><td class="az">Azure Container Registry</td><td class="neutral">Comparable</td><td>Standard SKU. Managed Identity pull — no image pull secrets needed.</td></tr>
+      <tr><td><strong>Data</strong></td><td>DynamoDB (PAY_PER_REQUEST)</td><td class="az">Cosmos DB NoSQL (serverless)</td><td class="neutral">Comparable</td><td>Partition key model maps directly. No GSI concept — use composite indexes.</td></tr>
+      <tr><td></td><td>S3 (Lua filters, public)</td><td class="az">Blob Storage (public container)</td><td class="neutral">Comparable</td><td>Same public URL pattern. Fluent Bit downloads Lua scripts unchanged.</td></tr>
+      <tr><td></td><td>S3 (CUR reports)</td><td class="az">Cost Management Exports</td><td class="win">Azure wins</td><td>Azure exports directly to Blob Storage; no CUR setup required.</td></tr>
+      <tr><td></td><td>Kafka / Confluent</td><td class="az">Azure Event Hubs (Kafka)</td><td class="win">Azure wins</td><td>Native Kafka protocol v2.0 compatible. confluent-kafka Python lib works unchanged.</td></tr>
+      <tr><td><strong>Identity</strong></td><td>IAM Roles + Instance Profiles</td><td class="az">User Assigned Managed Identity</td><td class="win">Azure wins</td><td>Credential-free. Identity attached to VM/VMSS without access keys.</td></tr>
+      <tr><td></td><td>GitHub OIDC → IAM Role</td><td class="az">GitHub OIDC → Federated Credential</td><td class="neutral">Comparable</td><td>Same OIDC mechanism; Federated Credential on Service Principal or MI</td></tr>
+      <tr><td></td><td>KMS (Lua signing)</td><td class="az">Azure Key Vault (RSA key)</td><td class="neutral">Comparable</td><td>Key Vault also stores all secrets (replaces SSM Parameter Store)</td></tr>
+      <tr><td><strong>Observability</strong></td><td>CloudWatch Log Groups</td><td class="az">Log Analytics Workspace</td><td class="win">Azure wins</td><td>KQL for queries, 30-day retention, Container Insights built-in</td></tr>
+      <tr><td></td><td>CloudWatch Metric Alarms</td><td class="az">Azure Monitor Alerts</td><td class="neutral">Comparable</td><td>Action Groups for notifications; same threshold-based alerting</td></tr>
+      <tr><td></td><td>EventBridge (Karpenter events)</td><td class="az">Azure Event Grid</td><td class="neutral">Comparable</td><td>VM lifecycle events → Event Grid → Service Bus for NAP</td></tr>
+      <tr><td></td><td>SQS (interruption queue)</td><td class="az">Azure Service Bus Queue</td><td class="neutral">Comparable</td><td>FIFO semantics, same 5-minute retention sufficient for interruptions</td></tr>
+      <tr><td></td><td>AWS SSM Run Command</td><td class="az">Azure Run Command</td><td class="neutral">Comparable</td><td>az vm run-command invoke replaces aws ssm send-command</td></tr>
+      <tr><td><strong>LLM</strong></td><td>AWS Bedrock (Claude, Titan)</td><td class="az">Azure OpenAI (GPT-4o)</td><td class="lose">AWS wins</td><td>Claude not available on Azure. Azure OpenAI added as bridge provider in seip-models.</td></tr>
+      <tr><td></td><td>Vertex AI (Gemini)</td><td class="az">Unchanged (Vertex AI)</td><td class="neutral">No change</td><td>seip-models already calls Vertex AI directly — no Azure dependency</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ NETWORKING ═══════ -->
+<section class="panel" id="networking">
+  <h2>Azure Networking</h2>
+  <p class="section-lead">A single VNet in germanywestcentral replaces the AWS VPC. Azure Bastion replaces fck-nat's SSH bastion role. Azure NAT Gateway provides managed outbound connectivity for private subnets. All PaaS services connect via Private Endpoints.</p>
+
+  <h3>VNet Subnet Layout</h3>
+  <table class="compare-table">
+    <thead><tr><th>Subnet</th><th>CIDR</th><th>Zone</th><th>Purpose</th><th>NSG</th></tr></thead>
+    <tbody>
+      <tr><td><strong>AzureBastionSubnet</strong></td><td>10.0.0.0/26</td><td>any</td><td>Azure Bastion host (required name)</td><td>Bastion NSG (managed)</td></tr>
+      <tr><td><strong>seip-dev-public-snet</strong></td><td>10.0.1.0/24</td><td>zone 1</td><td>NAT Gateway public prefix (outbound only)</td><td>public-nsg</td></tr>
+      <tr><td><strong>seip-dev-private-a-snet</strong></td><td>10.0.2.0/24</td><td>zone 1</td><td>App VM, VMSS workers, Private Endpoints</td><td>private-nsg</td></tr>
+      <tr><td><strong>seip-dev-private-b-snet</strong></td><td>10.0.3.0/24</td><td>zone 2</td><td>AKS nodes (second zone for HA)</td><td>private-nsg</td></tr>
+    </tbody>
+  </table>
+
+  <h3>NSG Rules — private-nsg</h3>
+  <table class="compare-table">
+    <thead><tr><th>Priority</th><th>Direction</th><th>Port</th><th>Source</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td>Inbound</td><td>22 TCP</td><td>AzureBastionSubnet (10.0.0.0/26)</td><td>SSH from Bastion to app VM and VMSS</td></tr>
+      <tr><td>110</td><td>Inbound</td><td>8765 TCP</td><td>Any (0.0.0.0/0)</td><td>seip-mcp public access (API-key protected)</td></tr>
+      <tr><td>120</td><td>Inbound</td><td>8184 TCP</td><td>VNet (10.0.0.0/16)</td><td>seip-models LLM gateway from VMSS workers</td></tr>
+      <tr><td>4096</td><td>Inbound</td><td>*</td><td>Any</td><td>DenyAll (default)</td></tr>
+      <tr><td>100</td><td>Outbound</td><td>*</td><td>Any</td><td>AllowAll (NAT Gateway handles routing)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <span class="callout-icon">⚠️</span>
+    <p>The app VM needs a <strong>Standard public IP</strong> for port 8765 (seip-mcp). In AWS this was handled by fck-nat DNAT. On Azure, assign the public IP directly to the app VM's NIC and allow 8765 in the NSG. The NAT Gateway handles all other outbound traffic.</p>
+  </div>
+
+  <h3>Private Endpoints</h3>
+  <div class="cards">
+    <div class="card accent-blue">
+      <div class="card-header"><span class="card-icon">🗄️</span><h3>Cosmos DB Private Endpoint</h3></div>
+      <p>Private DNS zone <code>privatelink.documents.azure.com</code> resolves to 10.0.2.x. All traffic stays within the VNet — no internet egress for database calls.</p>
+    </div>
+    <div class="card accent-teal">
+      <div class="card-header"><span class="card-icon">📦</span><h3>ACR Private Endpoint</h3></div>
+      <p>Private DNS zone <code>privatelink.azurecr.io</code>. Container pulls from app VM and VMSS stay on-VNet. AKS uses the same Private Endpoint via Kubelet Managed Identity.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-header"><span class="card-icon">🔑</span><h3>Key Vault Private Endpoint</h3></div>
+      <p>Private DNS zone <code>privatelink.vaultcore.azure.net</code>. App VM and AKS pods access secrets and the Lua signing key without leaving the VNet.</p>
+    </div>
+    <div class="card accent-yellow">
+      <div class="card-header"><span class="card-icon">💾</span><h3>Blob Storage Private Endpoint</h3></div>
+      <p>Private DNS zone <code>privatelink.blob.core.windows.net</code>. Lua filter uploads from seip-manager use private path. Public read access is via the regular public blob URL.</p>
+    </div>
+  </div>
+
+  <h3>Terraform: VNet Module Skeleton</h3>
+  <pre><code># modules/vnet/main.tf
+resource "azurerm_virtual_network" "main" {
+  name                = "${var.environment}-vnet"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  address_space       = ["10.0.0.0/16"]
+}
+
+resource "azurerm_subnet" "bastion" {
+  name                 = "AzureBastionSubnet"   # Must be exactly this name
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = ["10.0.0.0/26"]
+}
+
+resource "azurerm_subnet" "private_a" {
+  name                 = "${var.environment}-private-a-snet"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = ["10.0.2.0/24"]
+}
+
+resource "azurerm_nat_gateway" "main" {
+  name                = "${var.environment}-nat-gw"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  sku_name            = "Standard"
+}
+
+resource "azurerm_subnet_nat_gateway_association" "private_a" {
+  subnet_id      = azurerm_subnet.private_a.id
+  nat_gateway_id = azurerm_nat_gateway.main.id
+}
+
+resource "azurerm_bastion_host" "main" {
+  name                = "${var.environment}-bastion"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  ip_configuration {
+    name                 = "bastion-ip"
+    subnet_id            = azurerm_subnet.bastion.id
+    public_ip_address_id = azurerm_public_ip.bastion.id
+  }
+}</code></pre>
+</section>
+
+<!-- ═══════ AKS & SCALE ═══════ -->
+<section class="panel" id="aks">
+  <h2>AKS, Node Auto Provisioning &amp; KEDA</h2>
+  <p class="section-lead">AKS with Node Auto Provisioning (NAP) is the Azure equivalent of EKS + Karpenter. NAP uses the same Karpenter CRDs — AKSNodeClass and NodePool — so the Kubernetes manifests are nearly identical. KEDA watches Azure Monitor instead of CloudWatch.</p>
+
+  <h3>AKS Cluster Design</h3>
+  <div class="two-col">
+    <div class="box">
+      <h4>System Node Pool</h4>
+      <ul>
+        <li><strong>VM SKU</strong>: Standard_D2s_v5 (2 vCPU, 8 GiB)</li>
+        <li><strong>Count</strong>: min=1, max=3, desired=2</li>
+        <li><strong>Zone</strong>: zones 1 + 2</li>
+        <li><strong>Hosts</strong>: CoreDNS, kube-proxy, Karpenter/NAP controller, KEDA</li>
+        <li><strong>Label</strong>: <code>node-role: system</code></li>
+        <li><strong>No spot</strong>: system pool must be regular priority</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>Workload Nodes (NAP-provisioned)</h4>
+      <ul>
+        <li><strong>VM SKUs</strong>: Standard_D2s_v5, Standard_D4s_v5 (flexible)</li>
+        <li><strong>Priority</strong>: Spot (evictable)</li>
+        <li><strong>Count</strong>: 0 to max 10 (scales from zero)</li>
+        <li><strong>Hosts</strong>: seip-orchestrator pods</li>
+        <li><strong>Label</strong>: <code>karpenter.sh/nodepool: workload</code></li>
+        <li><strong>Interruption</strong>: Event Grid → Service Bus → NAP controller</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>AKSNodeClass (replaces EC2NodeClass)</h3>
+  <pre><code>apiVersion: karpenter.azure.com/v1alpha2
+kind: AKSNodeClass
+metadata:
+  name: default
+spec:
+  imageFamily: AzureLinux        # Microsoft's minimal container OS
+  osDiskSizeGB: 32
+  # NAP discovers subnets tagged with karpenter.sh/discovery=seip-dev-aks
+  # (same tag convention as Karpenter on EKS — apply via Terraform aws_ec2_tag equivalent)
+</code></pre>
+
+  <h3>NodePool (identical schema to EKS Karpenter)</h3>
+  <pre><code>apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: workload
+spec:
+  template:
+    metadata:
+      labels:
+        node-role: workload
+    spec:
+      nodeClassRef:
+        apiVersion: karpenter.azure.com/v1alpha2
+        kind: AKSNodeClass
+        name: default
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot"]          # Azure Spot VMs — same cost benefit as EC2 Spot
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: ["Standard_D2s_v5", "Standard_D4s_v5", "Standard_D2as_v5"]
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 30s
+  limits:
+    cpu: "40"
+    memory: "80Gi"</code></pre>
+
+  <h3>KEDA — Azure Monitor Trigger</h3>
+  <p>The <code>cloudwatch</code> trigger from the AWS version becomes <code>azure-monitor</code>. The Deep Mind VMSS publishes <code>UnprocessedEvents</code> as a custom Azure Monitor metric using the azure-monitor-ingestion SDK. KEDA reads that metric and scales the Orchestrator Deployment 0→5.</p>
+
+  <pre><code>apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-azure-monitor-auth
+  namespace: seip
+spec:
+  podIdentity:
+    provider: azure-workload   # Uses AKS Workload Identity (replaces IRSA)
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: seip-orchestrator-scaler
+  namespace: seip
+spec:
+  scaleTargetRef:
+    name: seip-orchestrator
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+    - type: azure-monitor
+      metadata:
+        resourceURI: subscriptions/&lt;SUB_ID&gt;/resourceGroups/seip-dev-rg/providers/Microsoft.Compute/virtualMachineScaleSets/seip-dev-deep-mind-vmss
+        tenantId: &lt;TENANT_ID&gt;
+        subscriptionId: &lt;SUB_ID&gt;
+        resourceGroupName: seip-dev-rg
+        metricNamespace: seip/deepmind       # Custom metric namespace
+        metricName: UnprocessedEvents
+        aggregationType: Average
+        targetValue: "30"                    # Same target as AWS: 30 events/replica
+        metricAggregationInterval: "0:1:0"  # 1-minute window
+      authenticationRef:
+        name: keda-azure-monitor-auth</code></pre>
+
+  <h3>Publishing Custom Metrics from Deep Mind</h3>
+  <pre><code># In seip-deep-mind: replace boto3 CloudWatch call with Azure Monitor Ingestion
+# requirements: azure-monitor-ingestion azure-identity
+
+from azure.monitor.ingestion import LogsIngestionClient
+from azure.identity import DefaultAzureCredential
+import datetime
+
+def publish_unprocessed_count(count: int):
+    # Azure Monitor custom metrics via Metrics Advisor endpoint (REST)
+    # Alternative: use azure-mgmt-monitor CustomMetricsClient
+    import requests, json
+    from azure.identity import DefaultAzureCredential
+
+    credential = DefaultAzureCredential()
+    token = credential.get_token("https://monitoring.azure.com/.default").token
+
+    url = (
+        "https://germanywestcentral.monitoring.azure.com"
+        "/subscriptions/&lt;SUB_ID&gt;"
+        "/resourceGroups/seip-dev-rg"
+        "/providers/Microsoft.Compute/virtualMachineScaleSets/seip-dev-deep-mind-vmss"
+        "/metrics"
+    )
+    body = {
+        "time": datetime.datetime.utcnow().isoformat() + "Z",
+        "data": {
+            "baseData": {
+                "metric": "UnprocessedEvents",
+                "namespace": "seip/deepmind",
+                "dimNames": [],
+                "series": [{"dimValues": [], "sum": count, "count": 1}]
+            }
+        }
+    }
+    requests.post(url, json=body, headers={"Authorization": f"Bearer {token}"})</code></pre>
+
+  <h3>Deep Mind VMSS Autoscale (replaces ASG Target Tracking)</h3>
+  <pre><code># modules/vmss/main.tf (deep_mind)
+resource "azurerm_monitor_autoscale_setting" "deep_mind" {
+  name                = "${var.environment}-deep-mind-autoscale"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  target_resource_id  = azurerm_linux_virtual_machine_scale_set.deep_mind.id
+
+  profile {
+    name = "default"
+    capacity { default = 0; minimum = 0; maximum = 5 }
+
+    rule {
+      metric_trigger {
+        metric_name        = "UnprocessedEvents"
+        metric_namespace   = "seip/deepmind"
+        metric_resource_id = azurerm_linux_virtual_machine_scale_set.deep_mind.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        time_aggregation   = "Average"
+        operator           = "GreaterThan"
+        threshold          = 30
+      }
+      scale_action { direction = "Increase"; type = "ChangeCount"; value = 1; cooldown = "PT2M" }
+    }
+
+    rule {
+      metric_trigger {
+        metric_name        = "UnprocessedEvents"
+        metric_namespace   = "seip/deepmind"
+        metric_resource_id = azurerm_linux_virtual_machine_scale_set.deep_mind.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        time_aggregation   = "Average"
+        operator           = "LessThan"
+        threshold          = 10
+      }
+      scale_action { direction = "Decrease"; type = "ChangeCount"; value = 1; cooldown = "PT5M" }
+    }
+  }
+}</code></pre>
+
+  <h3>EKS Cleanup Script → AKS Cleanup Script</h3>
+  <pre><code>#!/usr/bin/env bash
+# cleanup_aks.sh — drain AKS workload nodes before terraform destroy
+set -euo pipefail
+CLUSTER="seip-dev-aks"
+RG="seip-dev-rg"
+SUB="&lt;SUBSCRIPTION_ID&gt;"
+
+az aks get-credentials --resource-group "$RG" --name "$CLUSTER" --overwrite-existing
+
+echo "=== Scaling KEDA ScaledObjects to 0 ==="
+kubectl delete scaledobject --all -n seip 2>/dev/null || true
+kubectl scale deployment seip-orchestrator --replicas=0 -n seip 2>/dev/null || true
+
+echo "=== Deleting NAP NodePools ==="
+kubectl delete nodepool --all 2>/dev/null || true
+
+echo "=== Waiting for Karpenter/NAP nodes to terminate ==="
+for i in $(seq 1 30); do
+  COUNT=$(kubectl get nodes -l karpenter.sh/nodepool --no-headers 2>/dev/null | wc -l || echo 0)
+  [ "$COUNT" -eq 0 ] && break
+  echo "  $COUNT NAP nodes remaining — waiting 10s ($i/30)"
+  sleep 10
+done
+
+echo "=== Destroying AKS cluster only ==="
+terraform destroy -target=module.aks_cluster \
+  -var-file=environments/dev-aks/terraform.tfvars \
+  -auto-approve
+
+echo "Done. VNet, Cosmos DB, Blob Storage, and VMSS are untouched."</code></pre>
+</section>
+
+<!-- ═══════ DATA LAYER ═══════ -->
+<section class="panel" id="data">
+  <h2>Data Layer</h2>
+  <p class="section-lead">Azure Event Hubs replaces Kafka, Cosmos DB replaces DynamoDB, Blob Storage replaces S3, ACR replaces ECR, and Azure OpenAI is added as a new LLM bridge provider alongside the existing Vertex AI and Gemini direct API.</p>
+
+  <h3>Azure Event Hubs (Kafka-compatible)</h3>
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <p>Event Hubs supports Kafka protocol v1.0+. The <code>confluent_kafka</code> Python library in seip-kafka-consumer works without code changes — only the bootstrap server, SASL credentials, and security protocol change.</p>
+  </div>
+  <pre><code># seip-kafka-consumer: only these env vars change
+KAFKA_BOOTSTRAP_SERVERS=seip-dev-eventhubs.servicebus.windows.net:9093
+KAFKA_SECURITY_PROTOCOL=SASL_SSL
+KAFKA_SASL_MECHANISM=PLAIN
+KAFKA_SASL_USERNAME=$ConnectionString
+KAFKA_SASL_PASSWORD=&lt;Event Hubs connection string&gt;
+# Or use OAuth2 with Managed Identity (preferred):
+KAFKA_SECURITY_PROTOCOL=SASL_SSL
+KAFKA_SASL_MECHANISM=OAUTHBEARER
+# azure-event-hubs-kafka OAuth2 token provider handles the rest</code></pre>
+
+  <pre><code># modules/eventhubs/main.tf
+resource "azurerm_eventhub_namespace" "main" {
+  name                = "${var.environment}-eventhubs"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  sku                 = "Standard"
+  capacity            = 1        # 1 Throughput Unit = 1 MB/s in, 2 MB/s out
+  kafka_enabled       = true     # Kafka surface on :9093
+}
+
+resource "azurerm_eventhub" "seip_events" {
+  name                = "seip-events"   # Kafka topic name
+  namespace_name      = azurerm_eventhub_namespace.main.name
+  resource_group_name = var.resource_group_name
+  partition_count     = 4     # Same parallelism as Kafka partitions
+  message_retention   = 1     # 1 day retention (Standard tier max without Premium)
+}
+
+resource "azurerm_eventhub_consumer_group" "seip_consumer" {
+  name                = "seip-consumer-group"
+  namespace_name      = azurerm_eventhub_namespace.main.name
+  eventhub_name       = azurerm_eventhub.seip_events.name
+  resource_group_name = var.resource_group_name
+}</code></pre>
+
+  <h3>Cosmos DB for NoSQL (replaces DynamoDB)</h3>
+  <table class="compare-table">
+    <thead><tr><th>DynamoDB Concept</th><th>Cosmos DB Equivalent</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Table</td><td>Container</td><td>Same concept, different name</td></tr>
+      <tr><td>Partition Key</td><td>Partition Key</td><td>Identical — same field names work</td></tr>
+      <tr><td>Sort Key</td><td>id (or composite partition key)</td><td>Cosmos uses <code>id</code> as item identifier within a partition</td></tr>
+      <tr><td>PAY_PER_REQUEST</td><td>Serverless</td><td>Per-operation billing, no provisioned RUs</td></tr>
+      <tr><td>GSI (timeline-index)</td><td>Composite Index</td><td>Define index on pk + created_at in indexing policy</td></tr>
+      <tr><td>GSI (status-index)</td><td>Composite Index on /status + /timestamp</td><td>Same query patterns supported</td></tr>
+      <tr><td>TTL attribute</td><td>TTL (DefaultTimeToLive)</td><td>Set per-container TTL, same _ttl field convention</td></tr>
+      <tr><td>PITR</td><td>Continuous Backup (7-day)</td><td>Built-in, no extra config needed for serverless</td></tr>
+    </tbody>
+  </table>
+
+  <pre><code># modules/cosmos/main.tf
+resource "azurerm_cosmosdb_account" "main" {
+  name                = "${var.environment}-cosmos"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  offer_type          = "Standard"
+  kind                = "GlobalDocumentDB"   # NoSQL API
+
+  capabilities { name = "EnableServerless" }  # PAY_PER_REQUEST equivalent
+
+  consistency_policy { consistency_level = "Session" }
+
+  geo_location {
+    location          = var.location
+    failover_priority = 0
+  }
+}
+
+resource "azurerm_cosmosdb_sql_database" "seip" {
+  name                = "seip"
+  resource_group_name = var.resource_group_name
+  account_name        = azurerm_cosmosdb_account.main.name
+}
+
+resource "azurerm_cosmosdb_sql_container" "security_events" {
+  name                = "security-events"
+  resource_group_name = var.resource_group_name
+  account_name        = azurerm_cosmosdb_account.main.name
+  database_name       = azurerm_cosmosdb_sql_database.seip.name
+  partition_key_paths = ["/status"]       # Most queries filter by status
+  default_ttl         = 2592000           # 30 days (same as DynamoDB TTL pattern)
+
+  indexing_policy {
+    indexing_mode = "consistent"
+    included_path { path = "/*" }
+    composite_index {
+      index { path = "/status"; order = "ascending" }
+      index { path = "/timestamp"; order = "descending" }
+    }
+    composite_index {
+      index { path = "/item_type"; order = "ascending" }
+      index { path = "/analyzed_at"; order = "descending" }
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "seip_patterns" {
+  name                = "seip-patterns"
+  resource_group_name = var.resource_group_name
+  account_name        = azurerm_cosmosdb_account.main.name
+  database_name       = azurerm_cosmosdb_sql_database.seip.name
+  partition_key_paths = ["/hash"]
+  default_ttl         = -1   # No TTL — patterns are permanent until explicitly deleted
+}</code></pre>
+
+  <h3>Blob Storage (replaces S3)</h3>
+  <pre><code># modules/storage/main.tf
+resource "azurerm_storage_account" "lua" {
+  name                     = "seipdevlua"
+  resource_group_name      = var.resource_group_name
+  location                 = var.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  # Lua scripts are publicly readable (same as S3 public bucket for Fluent Bit download)
+  allow_nested_items_to_be_public = true
+}
+
+resource "azurerm_storage_container" "lua_filters" {
+  name                  = "lua-filters"
+  storage_account_name  = azurerm_storage_account.lua.name
+  container_access_type = "blob"   # Public read — Fluent Bit fetches Lua scripts by URL
+}
+
+resource "azurerm_storage_container" "cost_exports" {
+  name                  = "cost-exports"
+  storage_account_name  = azurerm_storage_account.lua.name
+  container_access_type = "private"   # Azure Cost Management exports land here
+}</code></pre>
+
+  <h3>Azure OpenAI (new LLM provider in seip-models)</h3>
+  <p>Azure OpenAI uses the OpenAI-compatible REST API, so it slots directly into the existing "bridge" provider pattern in seip-models. No new Python SDK required — only the endpoint and key change.</p>
+  <pre><code># In seip-models/app/models.py — add Azure OpenAI as a bridge model:
+{
+    "id": "bridge/gpt-4o",
+    "provider": "bridge",
+    "input_mtok": 2.50,
+    "output_mtok": 10.00,
+    "max_tokens": 16384,
+    "note": "Azure OpenAI (gpt-4o via bridge endpoint)"
+},
+{
+    "id": "bridge/gpt-4o-mini",
+    "provider": "bridge",
+    "input_mtok": 0.15,
+    "output_mtok": 0.60,
+    "max_tokens": 16384,
+    "note": "Azure OpenAI (gpt-4o-mini via bridge endpoint)"
+},
+
+# Environment variables for the bridge:
+# BRIDGE_URL=https://seip-dev-aoai.openai.azure.com/openai/deployments
+# BRIDGE_API_KEY=&lt;Azure OpenAI key from Key Vault&gt;
+# BRIDGE_API_VERSION=2024-10-21</code></pre>
+</section>
+
+<!-- ═══════ IDENTITY ═══════ -->
+<section class="panel" id="identity">
+  <h2>Identity &amp; Security</h2>
+  <p class="section-lead">Azure replaces IAM roles + instance profiles with Managed Identities. IRSA becomes AKS Workload Identity. SSM Parameter Store becomes Key Vault. The result is a credential-free environment where no access keys exist in any container or VM.</p>
+
+  <h3>Managed Identities Overview</h3>
+  <div class="cards">
+    <div class="card accent-blue">
+      <div class="card-header"><span class="card-icon">🖥️</span><h3>App VM Identity</h3></div>
+      <p><strong>User Assigned MI</strong>: <code>seip-dev-app-mi</code>. Granted: ACR Pull, Cosmos DB Data Contributor, Blob Storage Contributor, Key Vault Secrets User, Event Hubs Data Receiver.</p>
+    </div>
+    <div class="card accent-yellow">
+      <div class="card-header"><span class="card-icon">⚙️</span><h3>VMSS (Deep Mind) Identity</h3></div>
+      <p><strong>User Assigned MI</strong>: <code>seip-dev-worker-mi</code>. Granted: ACR Pull, Cosmos DB Data Contributor, Azure Monitor Metrics Publisher. Same as app VM minus GUI and management permissions.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-header"><span class="card-icon">☸️</span><h3>AKS Control Plane MI</h3></div>
+      <p><strong>System Assigned MI</strong>: manages VNet integration, load balancer, and NAP subnet discovery. Needs Network Contributor on VNet subnets.</p>
+    </div>
+    <div class="card accent-purple">
+      <div class="card-header"><span class="card-icon">🔧</span><h3>AKS Kubelet MI</h3></div>
+      <p><strong>User Assigned MI</strong>: <code>seip-dev-kubelet-mi</code>. Granted: ACR Pull on <code>seipdevacr</code>. All node pulls use this identity — no imagePullSecrets needed in Pod specs.</p>
+    </div>
+  </div>
+
+  <h3>Workload Identity (replaces IRSA)</h3>
+  <p>AKS Workload Identity is the Azure equivalent of EKS IRSA. A pod's service account is federated to a Managed Identity via an OIDC credential. The pod gets a token injected at <code>/var/run/service-account/azure-identity-token</code>.</p>
+
+  <pre><code># modules/identity/main.tf — KEDA workload identity
+resource "azurerm_user_assigned_identity" "keda" {
+  name                = "${var.environment}-keda-mi"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+}
+
+# Federated credential: AKS OIDC issuer → KEDA service account
+resource "azurerm_federated_identity_credential" "keda" {
+  name                = "keda-operator-federated"
+  resource_group_name = var.resource_group_name
+  parent_id           = azurerm_user_assigned_identity.keda.id
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = azurerm_kubernetes_cluster.main.oidc_issuer_url
+  subject             = "system:serviceaccount:keda:keda-operator"
+}
+
+# KEDA needs to read Azure Monitor metrics and Cosmos DB
+resource "azurerm_role_assignment" "keda_monitor" {
+  scope                = azurerm_cosmosdb_account.main.id
+  role_definition_name = "Monitoring Reader"
+  principal_id         = azurerm_user_assigned_identity.keda.principal_id
+}
+
+# KEDA Helm values — annotate the service account (same pattern as IRSA)
+# serviceAccount.operator.annotations:
+#   azure.workload.identity/client-id: &lt;keda_mi_client_id&gt;</code></pre>
+
+  <h3>Key Vault (replaces KMS + SSM Parameter Store)</h3>
+  <pre><code># modules/identity/keyvault.tf
+resource "azurerm_key_vault" "main" {
+  name                = "${var.environment}-kv"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  sku_name            = "standard"
+  enable_rbac_authorization = true   # Use RBAC instead of access policies
+}
+
+# Lua signing key (replaces aws_kms_key.lua_signing)
+resource "azurerm_key_vault_key" "lua_signing" {
+  name         = "lua-signing"
+  key_vault_id = azurerm_key_vault.main.id
+  key_type     = "RSA"
+  key_size     = 4096
+  key_opts     = ["sign", "verify"]
+}
+
+# Secrets (replaces SSM Parameter Store)
+resource "azurerm_key_vault_secret" "deep_mind_env" {
+  name         = "deep-mind-env"
+  value        = var.deep_mind_env_content
+  key_vault_id = azurerm_key_vault.main.id
+}
+
+# Grant app VM identity access to secrets
+resource "azurerm_role_assignment" "app_vm_kv" {
+  scope                = azurerm_key_vault.main.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.app.principal_id
+}</code></pre>
+
+  <h3>GitHub OIDC → Azure Workload Identity Federation</h3>
+  <pre><code># modules/identity/github_oidc.tf
+resource "azurerm_user_assigned_identity" "github_ci" {
+  name                = "${var.environment}-github-ci-mi"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+}
+
+resource "azurerm_federated_identity_credential" "github_ci" {
+  name                = "github-actions-federated"
+  resource_group_name = var.resource_group_name
+  parent_id           = azurerm_user_assigned_identity.github_ci.id
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = "https://token.actions.githubusercontent.com"
+  # Same subject format as the AWS OIDC module
+  subject             = "repo:mysak7/SEIP:ref:refs/heads/master"
+}
+
+# GitHub Actions workflow:
+# permissions: { id-token: write, contents: read }
+# - uses: azure/login@v2
+#   with:
+#     client-id: ${{ vars.AZURE_CLIENT_ID }}
+#     tenant-id: ${{ vars.AZURE_TENANT_ID }}
+#     subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}</code></pre>
+</section>
+
+<!-- ═══════ MONITORING ═══════ -->
+<section class="panel" id="monitoring">
+  <h2>Monitoring &amp; Observability</h2>
+  <p class="section-lead">Azure Monitor + Log Analytics Workspace replaces the full CloudWatch stack. Container Insights for AKS, VM Insights for the app VM and VMSS, custom metrics for UnprocessedEvents, and Azure Cost Management for the seip-money integration.</p>
+
+  <h3>Log Analytics Workspace</h3>
+  <pre><code># modules/monitoring/main.tf
+resource "azurerm_log_analytics_workspace" "main" {
+  name                = "${var.environment}-law"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  sku                 = "PerGB2018"
+  retention_in_days   = 30    # Same as CloudWatch Log Group retention
+}
+
+# AKS Container Insights (replaces CloudWatch Container Insights)
+resource "azurerm_monitor_diagnostic_setting" "aks" {
+  name               = "aks-diagnostics"
+  target_resource_id = azurerm_kubernetes_cluster.main.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+
+  enabled_log { category = "kube-apiserver" }
+  enabled_log { category = "kube-controller-manager" }
+  enabled_log { category = "kube-scheduler" }
+  metric { category = "AllMetrics" enabled = true }
+}</code></pre>
+
+  <h3>Azure Monitor Alerts (replaces CloudWatch Alarms)</h3>
+  <div class="sec-grid">
+    <div class="sec-item">
+      <h4><span class="sec-dot warn"></span>Cosmos DB High RU Alert</h4>
+      <p>Fires when <code>TotalRequestUnits</code> exceeds 3000/min sustained for 5 minutes. Replaces the DynamoDB ConsumedReadCapacityUnits alarm.</p>
+    </div>
+    <div class="sec-item">
+      <h4><span class="sec-dot warn"></span>UnprocessedEvents High Alert</h4>
+      <p>Fires when <code>SEIP/DeepMind/UnprocessedEvents</code> exceeds 500 for 10 consecutive minutes. Indicates a stuck or overloaded Deep Mind worker pool.</p>
+    </div>
+    <div class="sec-item">
+      <h4><span class="sec-dot ok"></span>VMSS Scale Events</h4>
+      <p>Activity Log alert on VMSS scale-out/scale-in events. Replaces CloudWatch scaling activity notification.</p>
+    </div>
+    <div class="sec-item">
+      <h4><span class="sec-dot ok"></span>AKS Node Pool Events</h4>
+      <p>Alert on NAP NodePool creation/deletion. Replaces EventBridge rule watching EC2 state changes.</p>
+    </div>
+  </div>
+
+  <pre><code># modules/monitoring/alerts.tf
+resource "azurerm_monitor_metric_alert" "unprocessed_high" {
+  name                = "${var.environment}-deepmind-unprocessed-high"
+  resource_group_name = var.resource_group_name
+  scopes              = [azurerm_linux_virtual_machine_scale_set.deep_mind.id]
+  description         = "Deep Mind UnprocessedEvents > 500 for 10 min"
+  frequency           = "PT1M"
+  window_size         = "PT10M"
+
+  criteria {
+    metric_namespace = "seip/deepmind"
+    metric_name      = "UnprocessedEvents"
+    aggregation      = "Maximum"
+    operator         = "GreaterThan"
+    threshold        = 500
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops.id
+  }
+}
+
+resource "azurerm_monitor_metric_alert" "cosmos_ru_high" {
+  name                = "${var.environment}-cosmos-ru-high"
+  resource_group_name = var.resource_group_name
+  scopes              = [azurerm_cosmosdb_account.main.id]
+  description         = "Cosmos DB TotalRequestUnits > 3000/min for 5 min"
+  frequency           = "PT1M"
+  window_size         = "PT5M"
+
+  criteria {
+    metric_namespace = "Microsoft.DocumentDB/databaseAccounts"
+    metric_name      = "TotalRequestUnits"
+    aggregation      = "Total"
+    operator         = "GreaterThan"
+    threshold        = 3000
+  }
+
+  action { action_group_id = azurerm_monitor_action_group.ops.id }
+}</code></pre>
+
+  <h3>seip-money Integration with Azure Cost Management</h3>
+  <p>The <code>seip-money</code> service currently reads CUR reports from S3. On Azure, it queries the <strong>Azure Cost Management API</strong> directly — no export file needed. The REST API returns cost breakdowns by service, resource group, and tag.</p>
+  <pre><code># seip-money: replace S3 CUR reader with Azure Cost Management API call
+# Uses DefaultAzureCredential (Managed Identity on app VM)
+
+from azure.identity import DefaultAzureCredential
+from azure.mgmt.costmanagement import CostManagementClient
+import datetime
+
+def get_monthly_costs(subscription_id: str) -> dict:
+    credential = DefaultAzureCredential()
+    client = CostManagementClient(credential)
+    scope = f"/subscriptions/{subscription_id}"
+
+    result = client.query.usage(scope, {
+        "type": "ActualCost",
+        "timeframe": "MonthToDate",
+        "dataset": {
+            "granularity": "Daily",
+            "aggregation": {"totalCost": {"name": "Cost", "function": "Sum"}},
+            "grouping": [{"type": "Dimension", "name": "ServiceName"}]
+        }
+    })
+    return result.as_dict()</code></pre>
+</section>
+
+<!-- ═══════ MIGRATION ═══════ -->
+<section class="panel" id="migration">
+  <h2>Migration Plan</h2>
+  <p class="section-lead">Seven phases, runnable in parallel where dependencies allow. AWS and Azure run simultaneously during the cutover phase — no big-bang migration. Estimated elapsed time for a single engineer: 3–4 weeks.</p>
+
+  <h3>Phased Roadmap</h3>
+  <div class="roadmap">
+    <div class="milestone">
+      <h4>Phase 1 — Foundation <span class="ms-label active">Week 1</span></h4>
+      <p>Create Resource Group, VNet with all subnets, NAT Gateway, Azure Bastion, User Assigned Managed Identities, Key Vault, GitHub OIDC federated credential. No application change. Terraform state: <code>environments/dev/</code>.</p>
+    </div>
+    <div class="milestone">
+      <h4>Phase 2 — Data Services <span class="ms-label active">Week 1–2</span></h4>
+      <p>Deploy Cosmos DB (serverless), Azure Event Hubs (Kafka), Blob Storage (Lua + Cost exports), ACR. Run DynamoDB → Cosmos DB data migration script. Validate seip-patterns and security-events containers.</p>
+    </div>
+    <div class="milestone">
+      <h4>Phase 3 — App VM <span class="ms-label planned">Week 2</span></h4>
+      <p>Provision Standard_D2as_v5 VM with User Assigned MI. Update cloud-init script to pull from ACR (via MI, no credentials). Point containers at Cosmos DB and Event Hubs endpoints. Validate seip-mcp on port 8765 with public IP.</p>
+    </div>
+    <div class="milestone">
+      <h4>Phase 4 — Deep Mind VMSS <span class="ms-label planned">Week 2</span></h4>
+      <p>Deploy VMSS with autoscale profile. Wire seip-deep-mind to publish <code>UnprocessedEvents</code> to Azure Monitor. Validate scale-out and scale-in at threshold=30. Confirm Cosmos DB claim mechanism works.</p>
+    </div>
+    <div class="milestone">
+      <h4>Phase 5 — AKS + NAP + KEDA <span class="ms-label planned">Week 3</span></h4>
+      <p>Deploy AKS cluster with system node pool. Install KEDA via Helm with Workload Identity annotation. Apply AKSNodeClass and NodePool manifests. Apply ScaledObject with azure-monitor trigger. Validate scale-from-zero.</p>
+    </div>
+    <div class="milestone">
+      <h4>Phase 6 — Code Changes <span class="ms-label planned">Week 3</span></h4>
+      <p>Add Azure OpenAI as bridge provider in seip-models. Update seip-money to use Cost Management API. Update Fluent Bit config on Windows agents (Event Hubs endpoint). Update GitHub Actions to use Azure federated login.</p>
+    </div>
+    <div class="milestone planned">
+      <h4>Phase 7 — Cutover &amp; Decommission <span class="ms-label planned">Week 4</span></h4>
+      <p>Update DNS for seip-mcp to Azure IP. Run parallel validation (both AWS + Azure for 48h). Switch Fluent Bit on all agents to Event Hubs. Run <code>terraform destroy</code> on AWS after 48h clean run. Tag Azure resources with cost center.</p>
+    </div>
+  </div>
+
+  <h3>Risks &amp; Mitigations</h3>
+  <div class="risks">
+    <div class="risk">
+      <span class="risk-badge high">HIGH</span>
+      <div class="risk-body">
+        <h4>DynamoDB → Cosmos DB Data Migration</h4>
+        <p>security-events table may have millions of items. Full scan + write risks hitting Cosmos DB serverless burst limits and takes time. The analyzing_by claim mechanism must be replicated exactly.</p>
+      </div>
+      <div class="risk-fix">
+        <div class="fix-label">Mitigation</div>
+        <p>Use AWS Data Migration Service + custom Python script. Migrate in chunks with TTL items filtered. Test claim mechanism on Cosmos DB before cutover. Keep DynamoDB as read replica during parallel run.</p>
+      </div>
+    </div>
+    <div class="risk">
+      <span class="risk-badge high">HIGH</span>
+      <div class="risk-body">
+        <h4>No Claude on Azure OpenAI</h4>
+        <p>seip-deep-mind and seip-manager use Claude via Bedrock for LLM analysis. Azure OpenAI only offers GPT-4o. Prompt engineering and output format expectations may differ, affecting classification accuracy.</p>
+      </div>
+      <div class="risk-fix">
+        <div class="fix-label">Mitigation</div>
+        <p>Keep Vertex AI (Gemini) as the primary model — it's already supported and has no AWS dependency. Azure OpenAI is additive. Bedrock calls can remain cross-cloud via VNet egress if needed during transition.</p>
+      </div>
+    </div>
+    <div class="risk">
+      <span class="risk-badge med">MED</span>
+      <div class="risk-body">
+        <h4>Event Hubs Kafka Compatibility Edge Cases</h4>
+        <p>Event Hubs is ~95% Kafka compatible. Some Confluent-specific APIs (AdminClient.create_topics, consumer group management via Admin API) are not supported.</p>
+      </div>
+      <div class="risk-fix">
+        <div class="fix-label">Mitigation</div>
+        <p>Review consumer_aws.py for any AdminClient usage. Topics are created via Terraform (Event Hub resources) rather than Kafka AdminClient — this aligns with Event Hubs' approach.</p>
+      </div>
+    </div>
+    <div class="risk">
+      <span class="risk-badge med">MED</span>
+      <div class="risk-body">
+        <h4>AKS NAP (Karpenter) Maturity Gap</h4>
+        <p>AKS Node Auto Provisioning is GA since 2024 but less battle-tested than EKS Karpenter. Some advanced Karpenter features (budget disruption, PodDisruptionBudgets interaction) may behave differently.</p>
+      </div>
+      <div class="risk-fix">
+        <div class="fix-label">Mitigation</div>
+        <p>Start with WhenEmpty consolidation (conservative). Test scale-from-zero manually before going live. Monitor NAP controller logs in Log Analytics for provisioning errors.</p>
+      </div>
+    </div>
+    <div class="risk">
+      <span class="risk-badge low">LOW</span>
+      <div class="risk-body">
+        <h4>Azure Monitor Custom Metrics Publishing</h4>
+        <p>Replacing boto3 CloudWatch.put_metric_data with the Azure Monitor REST API requires adding azure-identity to seip-deep-mind requirements.txt and writing the custom metrics publisher.</p>
+      </div>
+      <div class="risk-fix">
+        <div class="fix-label">Mitigation</div>
+        <p>Minimal code change — publish_unprocessed_count() is self-contained. DefaultAzureCredential picks up the VMSS Managed Identity automatically. Test locally with az login before deploying.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Terraform Structure Changes</h3>
+  <div class="two-col">
+    <div class="box">
+      <h4>Current (AWS)</h4>
+      <ul>
+        <li>terraform/environments/dev/ — base infra</li>
+        <li>terraform/environments/dev-eks/ — EKS cluster</li>
+        <li>terraform/modules/vpc/</li>
+        <li>terraform/modules/iam/</li>
+        <li>terraform/modules/ecr/</li>
+        <li>terraform/modules/dynamodb/</li>
+        <li>terraform/modules/eks/ (main, karpenter, keda)</li>
+        <li>Provider: hashicorp/aws + kubernetes + helm</li>
+        <li>State backend: S3 + DynamoDB lock</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>Target (Azure)</h4>
+      <ul>
+        <li>terraform/environments/dev/ — base infra</li>
+        <li>terraform/environments/dev-aks/ — AKS cluster</li>
+        <li>terraform/modules/vnet/</li>
+        <li>terraform/modules/identity/ (MI, Key Vault, GitHub OIDC)</li>
+        <li>terraform/modules/acr/</li>
+        <li>terraform/modules/cosmos/</li>
+        <li>terraform/modules/eventhubs/</li>
+        <li>terraform/modules/storage/</li>
+        <li>terraform/modules/aks/ (main, nap, keda)</li>
+        <li>terraform/modules/monitoring/</li>
+        <li>Provider: hashicorp/azurerm + kubernetes + helm</li>
+        <li>State backend: Azure Blob Storage + lease lock</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SCORES ═══════ -->
+<section class="panel" id="scores">
+  <h2>AWS vs Azure — Comparison</h2>
+  <p class="section-lead">Scores for SEIP's specific workload. Not a general cloud comparison — based on actual service capabilities relative to how SEIP uses them.</p>
+
+  <h3>Azure Scores</h3>
+  <div class="score-row"><span class="score-label">EU Data Residency</span><div class="score-track"><div class="score-fill g" style="width:95%"></div></div><span class="score-val">95%</span></div>
+  <div class="score-row"><span class="score-label">Kubernetes Native (AKS + NAP)</span><div class="score-track"><div class="score-fill g" style="width:88%"></div></div><span class="score-val">88%</span></div>
+  <div class="score-row"><span class="score-label">Kafka Compatibility (Event Hubs)</span><div class="score-track"><div class="score-fill g" style="width:85%"></div></div><span class="score-val">85%</span></div>
+  <div class="score-row"><span class="score-label">Managed Identity (credential-free)</span><div class="score-track"><div class="score-fill g" style="width:92%"></div></div><span class="score-val">92%</span></div>
+  <div class="score-row"><span class="score-label">LLM Ecosystem (Claude availability)</span><div class="score-track"><div class="score-fill r" style="width:40%"></div></div><span class="score-val">40%</span></div>
+  <div class="score-row"><span class="score-label">NoSQL Compatibility (Cosmos vs DynamoDB)</span><div class="score-track"><div class="score-fill y" style="width:75%"></div></div><span class="score-val">75%</span></div>
+  <div class="score-row"><span class="score-label">Dev Cost (germanywestcentral)</span><div class="score-track"><div class="score-fill y" style="width:70%"></div></div><span class="score-val">70%</span></div>
+  <div class="score-row"><span class="score-label">KEDA Support</span><div class="score-track"><div class="score-fill g" style="width:95%"></div></div><span class="score-val">95%</span></div>
+  <div class="score-row"><span class="score-label">Migration Effort</span><div class="score-track"><div class="score-fill y" style="width:65%"></div></div><span class="score-val">med</span></div>
+
+  <div class="divider"></div>
+
+  <h3>AWS Scores (current)</h3>
+  <div class="score-row"><span class="score-label">EU Data Residency</span><div class="score-track"><div class="score-fill g" style="width:95%"></div></div><span class="score-val">95%</span></div>
+  <div class="score-row"><span class="score-label">Kubernetes Native (EKS + Karpenter)</span><div class="score-track"><div class="score-fill g" style="width:85%"></div></div><span class="score-val">85%</span></div>
+  <div class="score-row"><span class="score-label">Kafka Compatibility (MSK/Confluent)</span><div class="score-track"><div class="score-fill g" style="width:95%"></div></div><span class="score-val">95%</span></div>
+  <div class="score-row"><span class="score-label">Credential Management (IAM Roles)</span><div class="score-track"><div class="score-fill g" style="width:85%"></div></div><span class="score-val">85%</span></div>
+  <div class="score-row"><span class="score-label">LLM Ecosystem (Claude via Bedrock)</span><div class="score-track"><div class="score-fill g" style="width:90%"></div></div><span class="score-val">90%</span></div>
+  <div class="score-row"><span class="score-label">NoSQL (DynamoDB)</span><div class="score-track"><div class="score-fill g" style="width:90%"></div></div><span class="score-val">90%</span></div>
+  <div class="score-row"><span class="score-label">Dev Cost (eu-central-1)</span><div class="score-track"><div class="score-fill g" style="width:75%"></div></div><span class="score-val">75%</span></div>
+  <div class="score-row"><span class="score-label">KEDA Support</span><div class="score-track"><div class="score-fill g" style="width:95%"></div></div><span class="score-val">95%</span></div>
+  <div class="score-row"><span class="score-label">Migration Effort</span><div class="score-track"><div class="score-fill g" style="width:100%"></div></div><span class="score-val">done</span></div>
+
+  <div class="divider"></div>
+
+  <h3>Verdict</h3>
+  <div class="two-col">
+    <div class="box">
+      <h4>When Azure wins for SEIP</h4>
+      <ul>
+        <li><strong>No EKS control plane cost</strong> — AKS is free (saves ~$72/mo)</li>
+        <li><strong>Managed Identity</strong> — cleaner than IAM instance profiles + SSM</li>
+        <li><strong>Azure Bastion</strong> — no bastion EC2 instance to maintain</li>
+        <li><strong>NAT Gateway</strong> — fully managed vs fck-nat EC2 instance</li>
+        <li><strong>Event Hubs</strong> — first-class Kafka without MSK overhead</li>
+        <li><strong>Organisation already on Azure</strong> — unified billing, AD integration</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>When AWS wins for SEIP</h4>
+      <ul>
+        <li><strong>Claude via Bedrock</strong> — Azure OpenAI lacks Claude, best model for SEIP analysis</li>
+        <li><strong>DynamoDB maturity</strong> — more predictable than Cosmos DB serverless burst</li>
+        <li><strong>Karpenter maturity</strong> — EKS Karpenter more battle-tested than AKS NAP</li>
+        <li><strong>Existing Terraform</strong> — already written and working</li>
+        <li><strong>MSK/Confluent</strong> — full Kafka API compatibility vs Event Hubs 95%</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <p><strong>Recommendation</strong>: Migrate only if there is an organizational reason (Azure EA, existing AD, compliance requirement). The Claude/Bedrock dependency is the biggest practical blocker — seip-deep-mind's AI quality depends on it. A hybrid approach (Azure infra + cross-cloud Bedrock via NAT Gateway egress) is viable during a transition period.</p>
+  </div>
+</section>
+
+</main>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.panel;
+      tabs.forEach(t => t.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
