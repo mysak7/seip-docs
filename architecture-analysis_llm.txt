@@ -1,0 +1,1028 @@
+Architecture Analysis 
+
+# SEIP — Sentinel Event Intelligence Platform 
+
+End-to-end security event ingestion, AI-driven triage, and pattern-based noise reduction on AWS. 
+
+📅 May 2026 
+
+☁️ AWS eu-central-1 
+
+🐘 12 Microservices 
+
+⚙️ Terraform IaC 
+
+🤖 Multi-LLM (Bedrock + Vertex AI) 
+
+🗺️ Overview ⚡ Pipeline ✅ Strengths ⚠️ Gaps & Risks 🔒 Security ⚖️ Alternatives 📊 Scores 🚀 Roadmap 
+
+## System Overview 
+
+SEIP captures Windows Sysmon/Fluent Bit events, ingests them through Kafka into DynamoDB, runs a three-stage AI triage (hash → KNN → LLM), generates pattern-based Lua noise filters, and exposes management dashboards — all deployed on AWS with Terraform. 
+
+ℹ️ 
+The system is currently running in a hybrid EC2+ASG mode. An EKS cluster (Karpenter + KEDA) is fully defined in Terraform but commented out — ready to activate when the orchestration workloads mature. 
+
+### Core Subsystems 
+
+🪟 
+### Windows Agent Layer 
+
+Sysmon collects events; Fluent Bit applies hot-reloadable Lua noise filters fetched from S3. Sends filtered events to Kafka. 
+
+📨 
+### Ingestion 
+
+seip-kafka-consumer 
+reads Kafka, writes raw events to DynamoDB 
+dev-security-events 
+with status="unanalyzed" . 
+
+🧠 
+### AI Analysis (Deep Mind) 
+
+Three-stage fingerprinting: SHA-256 exact match → 384-dim KNN semantic similarity → LLM (Bedrock/Vertex). Scales via ASG. 
+
+🔍 
+### Pattern Engine 
+
+seip-manager 
+manages fingerprint patterns, generates Lua scripts for proactive filtering upstream at the agent level. 
+
+📊 
+### Observability UIs 
+
+seip-orchestrator (Streamlit), seip-gui (Node.js), seip-gui-easy (FastAPI) — all behind SSH tunnels or NAT. seip-money shows AWS spend. 
+
+🤖 
+### MCP Integration 
+
+seip-mcp 
+exposes a Claude MCP endpoint publicly on port 8765 via DNAT through the fck-nat bastion. 
+
+### AWS Services Used 
+
+🖥️ 
+
+#### EC2 / ASG 
+
+t4g.small app-host (ARM), t3.micro Deep Mind workers (x86), fck-nat bastion (t3.micro) 
+
+🗄️ 
+
+#### DynamoDB 
+
+2 on-demand tables: security-events (GSI×4, PITR) and seip-patterns (TTL) 
+
+📦 
+
+#### ECR 
+
+9 private repos; lifecycle: keep last 10 images, scan on push, 1-day cleanup for untagged 
+
+🪣 
+
+#### S3 
+
+Public bucket for Lua filters; private bucket for CUR billing reports 
+
+📈 
+
+#### CloudWatch 
+
+Custom metric UnprocessedEvents drives ASG; 4 alarms; metric filters on log lines 
+
+🔐 
+
+#### SSM Parameter Store 
+
+All secrets encrypted under KMS. Service configs stored at 
+/dev/seip-*/ 
+
+☸️ 
+
+#### EKS (planned) 
+
+Kubernetes 1.32; Karpenter v1.3.3; KEDA v2.16.0 — fully defined, not yet deployed 
+
+🌐 
+
+#### IAM / OIDC 
+
+GitHub Actions OIDC role for CI/CD ECR push; IRSA for EKS workloads 
+
+🤖 
+
+#### Bedrock + Vertex AI 
+
+Multi-provider LLM fallback. Bedrock for primary; Google Vertex for secondary model 
+
+### Repository Structure (Monorepo + Submodules) 
+
+SEIP/
+├── seip-agent-win Windows agent: Sysmon + Fluent Bit + Lua hot-reload
+├── seip-kafka-consumer Kafka → DynamoDB ingestor (FastAPI)
+├── seip-deep-mind LLM event analyzer: hash cache + KNN + Bedrock/Vertex
+├── seip-models LLM gateway / token billing proxy
+├── seip-manager Pattern CRUD + Lua noise filter generator
+├── seip-orchestrator Streamlit ASG control panel + metrics dashboard
+├── seip-gui Node.js event browser (port 3000)
+├── seip-gui-easy FastAPI UI + synthetic test data generator
+├── seip-money AWS CUR cost dashboard (FastAPI + Parquet)
+├── seip-mcp Claude MCP server (port 8765, public via DNAT)
+├── seip-maintenance Debug/operational scripts (Python + PowerShell)
+├── seip-infrastructure Terraform IaC (all AWS resources)
+└── CLAUDE.md Dev task spec (EKS migration plan) 
+
+## Event Processing Pipeline 
+
+End-to-end flow from Windows endpoint to analyzed and filtered event, including the AI fingerprinting pipeline and the feedback loop back to the agent. 
+
+### Stage 1 — Ingest 
+
+Windows Endpoint 
+
+Sysmon Events 
+
+→ 
+
+Fluent Bit 
+
+Lua filter (S3) 
+
+→ 
+
+Kafka Topic 
+
+seip-events 
+
+→ 
+
+kafka-consumer 
+
+FastAPI 
+
+→ 
+
+DynamoDB 
+
+status=unanalyzed 
+
+### Stage 2 — AI Analysis (Three-Phase Fingerprinting) 
+
+Unanalyzed Events 
+
+DynamoDB query 
+
+→ 
+
+Stage A 
+
+SHA-256 exact match 
+
+→ 
+
+Stage B 
+
+KNN cosine sim <0.15 
+
+→ 
+
+Stage C 
+
+LLM call (Bedrock/Vertex) 
+
+→ 
+
+DynamoDB 
+
+status=analyzed 
+
+💡 
+Stage A (hash cache) eliminates ~80% of LLM calls. Stage B (KNN on all-MiniLM-L6-v2 384-dim embeddings) eliminates most of the remainder. Only genuinely novel events reach the LLM — significant cost and latency savings. 
+
+### Stage 3 — Pattern Feedback Loop 
+
+Analyzed Events 
+
+severity + pattern 
+
+→ 
+
+seip-manager 
+
+Pattern CRUD 
+
+→ 
+
+Lua Generator 
+
+noise filter script 
+
+→ 
+
+S3 Bucket 
+
+mysak7-seip-lua 
+
+→ 
+
+Fluent Bit 
+
+Hot-reload filter 
+
+### Worker Scaling — ASG Target Tracking 
+
+Deep Mind Primary 
+
+app-host (always on) 
+
+→ 
+
+CW Metric 
+
+UnprocessedEvents 
+
+→ 
+
+Target Tracking 
+
+Target: 30 events 
+
+→ 
+
+ASG Workers 
+
+0–5 × t3.micro 
+
+DynamoDB claim locks ( 
+analyzing_by 
++ 
+analyzing_at 
+) prevent duplicate processing across primary + N workers. Scale-in cooldown: 300 s. 
+
+## Architectural Strengths 
+
+What the current design gets right — well-considered trade-offs and implementation quality highlights. 
+
+### Cost Engineering 
+
+#### ✅ What works well 
+
+Three-phase fingerprinting — SHA-256 + KNN eliminates >80% of LLM API calls. Directly reduces the dominant cost driver. 
+
+DynamoDB on-demand billing — zero idle cost; perfectly matched to bursty ingest patterns. 
+
+ASG scales to zero workers — Deep Mind workers only exist while a backlog is present. 
+
+fck-nat (t3.micro) — replaces a $32+/month Managed NAT Gateway at pennies/day. 
+
+Karpenter consolidation policy (planned) — future EKS nodes collapse to 0 when idle. 
+
+S3 public Lua bucket — agents can self-update filters without long-term credentials. 
+
+#### ✅ Infrastructure quality 
+
+Full IaC via Terraform with remote S3 state + DynamoDB locking — no manual drift. 
+
+GitHub Actions OIDC — no long-lived AWS access keys in CI/CD. 
+
+SSM Parameter Store + KMS — secrets never hardcoded or in environment files. 
+
+ECR lifecycle policies — image storage costs bounded automatically. 
+
+PITR on security-events table — audit-grade point-in-time recovery. 
+
+Templated user_data.sh.tftpl — app-host bootstrap is reproducible, idempotent, and version-controlled. 
+
+### Operational Design 
+
+🔄 
+### Hot-reload Lua Filters 
+
+Pattern updates propagate to all Windows agents without any agent deployment. Fast feedback loop between analysis and noise suppression. 
+
+🏗️ 
+### Modular Terraform 
+
+VPC, IAM, ECR, DynamoDB, and EKS are separate modules. Changes are scoped and state is isolated — low blast radius per apply. 
+
+🌐 
+### Multi-LLM Provider 
+
+Bedrock as primary + Google Vertex AI as secondary gives provider redundancy and lets you switch models without code changes. 
+
+📦 
+### Full Containerization 
+
+All services run as Docker containers pulled from ECR. Deployments are image swaps — rollback is a tag change. 
+
+🔑 
+### DynamoDB Claim Locks 
+
+analyzing_by 
++ 
+analyzing_at 
+prevent duplicate work across the primary instance and ASG workers without a separate coordinator service. 
+
+📊 
+### seip-money Dashboard 
+
+CUR reports → Parquet → FastAPI gives real-time cost visibility. Most teams don't build this until bills arrive; SEIP has it from the start. 
+
+## Gaps & Risks 
+
+Issues that could cause incidents, cost surprises, or impede scaling. Each entry includes a severity rating and a suggested mitigation. 
+
+HIGH 
+
+#### Single-AZ App-Host — no HA 
+
+All 9 services share one 
+t4g.small 
+in a single AZ. An AZ failure, OOM, or bad deploy takes down the entire platform simultaneously. No health-check-based restart exists at the VM level. 
+
+Mitigation 
+
+Move to ECS Fargate (multi-AZ) or activate EKS for service hosting. At minimum add a systemd 
+Restart=always 
+watchdog per container. 
+
+HIGH 
+
+#### Public S3 Bucket for Lua Filters 
+
+mysak7-seip-lua 
+has public read enabled so Fluent Bit agents can pull filters without credentials. A malicious actor could replace the filter with one that suppresses all security events — a silent attacker blind-spot. 
+
+Mitigation 
+
+Add KMS signing (already has the KMS key) + agent-side signature verification. Or switch to presigned URLs via a lightweight endpoint. At minimum enable S3 versioning + MFA delete. 
+
+HIGH 
+
+#### No Kafka Persistence / Durability Guarantee 
+
+Kafka infrastructure definition is not visible in the explored Terraform. If Kafka is self-managed (not MSK), a broker restart loses undelivered events. The ingestion path has no dead-letter queue. 
+
+Mitigation 
+
+Use Amazon MSK (managed Kafka) with multi-AZ replication, or add SQS DLQ for failed Kafka consumers. Enable Kafka log retention ≥ 24 h. 
+
+HIGH 
+
+#### ARM/x86 Image Mismatch Risk 
+
+App-host is ARM64 ( 
+t4g.small 
+); Deep Mind ASG workers are x86_64 ( 
+t3.micro 
+). If CI builds single-arch images, workers will pull an image that silently fails to start or OOMs trying to emulate under QEMU. 
+
+Mitigation 
+
+Build multi-arch manifests ( 
+docker buildx --platform linux/amd64,linux/arm64 
+) in all CI pipelines. Verify with 
+docker manifest inspect 
+. 
+
+MEDIUM 
+
+#### seip-mcp Exposed Without Auth 
+
+Port 8765 is forwarded publicly from the NAT bastion to 
+seip-mcp 
+via DNAT. If 
+seip-mcp 
+has no authentication layer, anyone with the bastion IP can invoke Claude API calls that are billed to your account. 
+
+Mitigation 
+
+Add HTTP bearer token or mTLS to 
+seip-mcp 
+. Rate-limit at bastion with 
+iptables 
+or switch to API Gateway + Lambda authorizer for the MCP endpoint. 
+
+MEDIUM 
+
+#### DynamoDB Scan Operations 
+
+Deep Mind queries unanalyzed events using the 
+status-index 
+GSI. At high ingest rates, Scan/Query across a large GSI consumes significant RCU. The 
+dev-security-events-high-rcu 
+alarm threshold (3000/min) may be hit regularly during peak hours. 
+
+Mitigation 
+
+Add a SQS queue between Kafka consumer and Deep Mind workers — ingest events into SQS, use it as the work queue instead of polling DynamoDB. Eliminates the GSI scan entirely. 
+
+MEDIUM 
+
+#### KNN Embedding Matrix Grows Unbounded 
+
+The in-memory 384-dim embedding matrix in Deep Mind grows with every new pattern. On t3.micro workers (1 GB RAM), a large pattern corpus could OOM the process or cause SIGKILL at startup. 
+
+Mitigation 
+
+Store embeddings in DynamoDB + local disk cache with an approximate index (FAISS/HNSW). Load only recently-active patterns at startup. Or use Amazon OpenSearch with k-NN plugin. 
+
+MEDIUM 
+
+#### No Circuit Breaker for LLM Calls 
+
+If Bedrock throttles or Vertex AI returns 5xx errors, Deep Mind retries events indefinitely, burning the 
+max_events_per_run 
+budget on failed calls and leaving genuine events unanalyzed. 
+
+Mitigation 
+
+Implement exponential back-off + circuit breaker (tenacity/pybreaker). Publish a 
+LLMErrors 
+CloudWatch metric and add an alarm. Set a per-event 
+retry_count 
+attribute with a maximum of 3. 
+
+MEDIUM 
+
+#### No EKS Cleanup Script Yet 
+
+CLAUDE.md calls for a 
+cleanup_eks.sh 
+that drains Karpenter nodes before 
+terraform destroy 
+. Without it, activating EKS and then destroying will leave orphaned EC2 instances and ENIs that block VPC deletion. 
+
+Mitigation 
+
+Implement the script before activating EKS. Script must: delete ScaledObjects → delete NodePools → wait for node drain → 
+terraform destroy -target=module.eks 
+. 
+
+LOW 
+
+#### Single-Region Deployment 
+
+All compute, storage, and Kafka in 
+eu-central-1 
+. A regional outage (rare but possible) stops all event analysis. CUR reports are already cross-region (us-east-1). 
+
+Mitigation 
+
+Acceptable for current scale. Future: DynamoDB Global Tables + cross-region ECR replication. Not urgent unless SLA requirements change. 
+
+LOW 
+
+#### Multiple Overlapping GUI Services 
+
+seip-gui 
+(Node.js/3000), 
+seip-gui-easy 
+(FastAPI/8080), and 
+seip-orchestrator 
+(Streamlit/8501) serve partially overlapping use cases. Maintenance burden scales linearly with each additional UI. 
+
+Mitigation 
+
+Consolidate to one primary UI (seip-orchestrator or seip-gui-easy) once EKS migration stabilizes. Archive or redirect the others. 
+
+## Security Analysis 
+
+Review of authentication, authorization, network exposure, and data handling across the platform. 
+
+### Network Perimeter 
+
+#### Private-First Architecture 
+
+App-host and all ASG workers run in a private subnet with no direct internet route. All external access routes through the bastion. 
+
+#### fck-nat Bastion as Single Entry 
+
+Single ingress point for SSH and MCP. Security group inbound rules are explicit — only SSH and port 8765. No wildcard port opens. 
+
+#### SSH CIDR Default 0.0.0.0/0 
+
+Default SSH allow CIDR is all-internet. Fine for dev, but should be restricted to specific IPs or a VPN range before any production use. 
+
+#### seip-mcp No Auth Layer 
+
+MCP endpoint on port 8765 is publicly reachable via the bastion DNAT. Without a token/auth layer anyone can invoke it and accrue LLM costs. 
+
+#### Deep Mind Workers — Egress Only 
+
+Worker security group has no inbound rules at all. Workers pull work from DynamoDB (egress only), so no attack surface from the network side. 
+
+#### App-Host Services Not Isolated 
+
+All 9 services share one EC2 instance and one IAM role. A compromised container gets full IAM permissions (DynamoDB, SSM, ECR, ASG control). 
+
+### Identity & Access 
+
+#### OIDC for GitHub Actions 
+
+No long-lived AWS access keys in CI/CD. GitHub OIDC federation is the correct pattern — short-lived tokens, no secrets in repo. 
+
+#### SSM + KMS for All Secrets 
+
+No secrets in environment files or Docker images. All config fetched at runtime from SSM Parameter Store with KMS encryption. 
+
+#### Overly Broad EC2 IAM Role 
+
+Single 
+dev-ec2-role 
+grants DynamoDB, SSM, ASG, Bedrock, S3, CloudWatch to all services. Least-privilege would use per-service roles with IRSA (available when EKS activates). 
+
+#### EKS IRSA Ready 
+
+Karpenter, KEDA, and EBS CSI driver all have separate IRSA roles defined in Terraform. When EKS activates, workloads get minimal permissions per service. 
+
+#### ECR Image Scanning 
+
+All ECR repos have 
+scan_on_push = true 
+. Vulnerabilities in base images surface at push time — not at runtime. 
+
+#### Vertex AI JSON in SSM 
+
+Google service account JSON stored in SSM. If the service account is overpermissioned in GCP, a compromised app-host yields full GCP access. Scope the SA to only the required Vertex AI models. 
+
+### Data Handling 
+
+#### DynamoDB PITR 
+
+Point-in-time recovery enabled on 
+dev-security-events 
+. Security events can be recovered to any point in the last 35 days. 
+
+#### TTL-Based Data Expiry 
+
+Both DynamoDB tables have TTL. Old events expire automatically — no unbounded storage growth and implicit data retention policy. 
+
+#### Public S3 Lua Bucket 
+
+Bucket has public read. A supply-chain attack that modifies 
+noise_filter.lua 
+could silence all security event collection across all endpoints without triggering any alarm. 
+
+#### No CloudTrail Mentioned 
+
+CloudTrail API logging is not visible in the Terraform. For a security platform, API audit trails are essential — especially for 
+SetDesiredCapacity 
+(ASG) and 
+PutParameter 
+(SSM) calls. 
+
+#### Security Events Sent to LLM Provider 
+
+Raw Sysmon event data (hostnames, paths, process names) is sent to Bedrock / Vertex AI. Ensure data residency and privacy requirements align with LLM provider data processing terms. 
+
+#### CUR Bucket — Private 
+
+Cost & Usage Report S3 bucket is private. Only the EC2 role has read access. Billing data is not accidentally exposed. 
+
+⚠️ 
+Priority actions: (1) Add auth to seip-mcp. (2) Sign the Lua filter files with the existing KMS key and verify on the agent side. (3) Enable CloudTrail in the Terraform environment. (4) Restrict SSH source CIDR from 
+0.0.0.0/0 
+. 
+
+## Implementation Alternatives 
+
+For each major architectural decision, a comparison of the current approach versus realistic alternatives — with trade-offs. 
+
+### 1. AI Analysis Worker Scaling 
+
+Option 
+
+Cost 
+
+Ops Complexity 
+
+Latency 
+
+Verdict 
+
+Current: EC2 ASG + CW Target Tracking 
+
+Low (t3.micro, scale-to-0) 
+
+Medium (ASG, boot time ~90s) 
+
+Boot lag on scale-out 
+
+Good for current scale 
+
+Planned: EKS + Karpenter + KEDA 
+
+Medium (EKS CP: ~$72/mo) 
+
+High (cluster, IRSA, NodePools) 
+
+Fast (pod start <10s with warm nodes) 
+
+Best for multi-workload future 
+
+ECS Fargate + EventBridge Pipes 
+
+Medium (per-vCPU/GB-hour) 
+
+Low (no cluster mgmt) 
+
+~10-20s cold start 
+
+Good middle ground 
+
+Lambda (batch triggered by SQS) 
+
+Lowest (pay per invocation) 
+
+Low (serverless) 
+
+Cold start + 15 min limit 
+
+Poor fit: in-memory embedding matrix 
+
+SQS FIFO + EC2 Spot workers 
+
+Very low (Spot ≈70% discount) 
+
+Medium 
+
+Variable (Spot interruptions) 
+
+Cost-optimized if interruptions tolerated 
+
+### 2. Event Work Queue 
+
+Option 
+
+Cost 
+
+Consistency 
+
+Ops 
+
+Verdict 
+
+Current: DynamoDB GSI Poll (status-index) 
+
+RCU per poll cycle 
+
+Manual claim lock 
+
+Zero infra 
+
+Works, but expensive at scale 
+
+SQS Standard Queue 
+
+~$0.40/million msgs 
+
+At-least-once + visibility timeout 
+
+Managed 
+
+Best: eliminates DynamoDB scans 
+
+DynamoDB Streams → Lambda → SQS 
+
+Low (Lambda free tier) 
+
+Exactly-once via dedup 
+
+Medium (Lambda + Streams) 
+
+Good if you want event-driven push 
+
+Keep Kafka as work queue 
+
+Depends on MSK tier 
+
+Kafka consumer groups 
+
+Kafka mgmt overhead 
+
+Redundant if you already have SQS 
+
+### 3. Embedding / Semantic Cache 
+
+Option 
+
+Scalability 
+
+Cost 
+
+Accuracy 
+
+Verdict 
+
+Current: In-memory numpy matrix 
+
+OOM risk on t3.micro >10k patterns 
+
+Zero 
+
+Exact cosine 
+
+OK for <5k patterns 
+
+FAISS IndexFlatIP (local file) 
+
+Good (>1M vectors) 
+
+Zero 
+
+Near-exact 
+
+Best low-cost option 
+
+Amazon OpenSearch k-NN 
+
+Excellent 
+
+~$0.10/hr minimum 
+
+ANN with filtering 
+
+Overkill until >100k patterns 
+
+DynamoDB + Bedrock Titan Embeddings 
+
+Scales with DDB 
+
+Per-embedding API cost 
+
+Depends on model quality 
+
+Removes local model dependency 
+
+### 4. Noise Filter Distribution 
+
+Option 
+
+Security 
+
+Latency 
+
+Complexity 
+
+Verdict 
+
+Current: Public S3 + Fluent Bit pull 
+
+No integrity check 
+
+Low (S3 CDN speeds) 
+
+Zero 
+
+Simple but risky 
+
+S3 + KMS signature verification 
+
+Signed, tamper-evident 
+
+Low 
+
+Low (existing KMS key) 
+
+Best: minimal change, high security gain 
+
+Presigned URLs via Lambda 
+
+Private bucket, time-limited URLs 
+
+Medium (extra hop) 
+
+Medium (Lambda endpoint) 
+
+Good if agents have AWS credentials 
+
+SSM Distributor / Systems Manager 
+
+Full AWS auth 
+
+Medium 
+
+Requires SSM agent on Windows 
+
+Better for managed fleets, not BYOD agents 
+
+### 5. App-Host: Single VM vs Multi-Service Hosting 
+
+Option 
+
+Isolation 
+
+Cost 
+
+Ops 
+
+Verdict 
+
+Current: All services on one t4g.small 
+
+None — shared IAM, shared memory 
+
+~$13/mo 
+
+Simple 
+
+Good for dev, risky for prod 
+
+ECS Fargate (one task per service) 
+
+IAM per task, network isolation 
+
+~$30-60/mo 
+
+Medium 
+
+Natural next step before full EKS 
+
+EKS (planned) 
+
+Namespace + IRSA isolation 
+
+~$85+/mo (control plane) 
+
+High 
+
+Best for multi-workload future 
+
+Multiple smaller EC2 instances 
+
+Medium (per-instance role) 
+
+Higher (multiple instances) 
+
+Manual 
+
+Worst of both worlds 
+
+## Architecture Scorecard 
+
+Qualitative scores across key dimensions, on a scale of 0–100. Based on the current (pre-EKS) state of the platform. 
+
+### Overall Dimensions 
+
+Cost Efficiency 
+
+85 
+
+Security Posture 
+
+55 
+
+Scalability 
+
+60 
+
+Reliability / HA 
+
+35 
+
+Observability 
+
+65 
+
+Developer Experience 
+
+80 
+
+IaC Quality 
+
+88 
+
+AI Pipeline Efficiency 
+
+90 
+
+Operational Simplicity 
+
+75 
+
+Data Durability 
+
+82 
+
+### AI Analysis Subsystem Detail 
+
+Cache Hit Rate Design 
+
+92 
+
+LLM Cost Control 
+
+88 
+
+Model Provider Resilience 
+
+78 
+
+Embedding Scalability 
+
+45 
+
+Error Recovery / Retry 
+
+40 
+
+Analysis Latency 
+
+60 
+
+📌 
+The biggest gap between current and post-EKS state is Reliability/HA (35 → estimated 75+) and Security (55 → 72+) . Both improve significantly once EKS IRSA replaces the shared EC2 role and multi-AZ service hosting replaces the single app-host. 
+
+## Recommended Roadmap 
+
+Prioritized improvements ordered by risk-reduction impact vs. implementation effort. 
+
+### Immediate (Security — Low Effort) 
+
+#### Add authentication to seip-mcp Active Risk 
+
+Add HTTP bearer token validation or API key check to the MCP server. Prevents unauthorized LLM API calls billed to your account. 1–2 hours of work. 
+
+#### Enable CloudTrail Active Risk 
+
+Add 
+aws_cloudtrail 
+resource to Terraform dev environment. Logs all API calls — critical for a security platform. ~30 min of Terraform. 
+
+#### Restrict SSH source CIDR Active Risk 
+
+Change 
+var.allowed_ssh_cidr 
+from 
+0.0.0.0/0 
+to your actual IP range or a VPN CIDR. 5-minute Terraform change. 
+
+#### Sign Lua filters with KMS Active Risk 
+
+Use the existing 
+aws_kms_key.lua_signing 
+to sign filter files on upload. Add signature verification in Fluent Bit startup script. Prevents filter supply-chain attacks. 
+
+### Short-Term (Reliability) 
+
+#### Migrate to SQS Work Queue Planned 
+
+Replace the DynamoDB GSI poll with SQS. kafka-consumer writes to SQS after DynamoDB insert; Deep Mind workers consume from SQS. Eliminates RCU cost and the manual claim-lock mechanism. 
+
+#### Multi-arch Docker Builds Planned 
+
+Update all GitHub Actions workflows to build 
+linux/amd64,linux/arm64 
+manifests. Required before scaling Deep Mind to mixed-arch environments. 
+
+#### FAISS-based Embedding Index Planned 
+
+Replace in-memory numpy matrix with FAISS 
+IndexFlatIP 
+persisted to disk. Solves the OOM risk on t3.micro workers at >10k patterns. 
+
+#### LLM Circuit Breaker & Retry Policy Planned 
+
+Add 
+tenacity 
+-based retry with exponential back-off + circuit breaker for Bedrock/Vertex calls. Publish 
+LLMErrors 
+metric to CloudWatch. 
+
+### Medium-Term (EKS Activation) 
+
+#### Implement cleanup_eks.sh Pre-requisite 
+
+Required before activating EKS. Script: delete ScaledObjects → delete NodePools → wait for drain → 
+terraform destroy -target=module.eks 
+. Without it, destroy leaves orphaned EC2 instances. 
+
+#### Activate EKS + Karpenter + KEDA Planned 
+
+Uncomment EKS module in Terraform. Deploy system node group first, then Helm releases. Migrate seip-orchestrator workloads to Pods. KEDA ScaledObject replaces ASG Target Tracking for new workloads. 
+
+#### Per-Service IRSA Roles Planned 
+
+When EKS is active, replace the single 
+dev-ec2-role 
+with per-workload IRSA roles (already defined in Terraform). Eliminates the shared-IAM blast radius. 
+
+### Long-Term (Maturity) 
+
+#### Consolidate GUI Services Planned 
+
+Merge seip-gui, seip-gui-easy, and seip-orchestrator into a single frontend. Reduces maintenance burden and removes the multi-port management complexity. 
+
+#### MSK (Managed Kafka) Planned 
+
+Replace self-managed Kafka with Amazon MSK. Multi-AZ replication, IAM auth, no broker management. Eliminates the event-loss risk on Kafka node restart. 
+
+#### DynamoDB Global Tables (Multi-Region) Planned 
+
+If SLA requirements increase, add a second region replica. Global Tables provide active-active replication with ~1s lag between regions. 
+
+🎯 
+Recommended focus order: Security fixes (no-brainers) → SQS queue (removes the biggest operational pain point) → FAISS index (prevents memory issues before EKS) → EKS activation (the planned endgame).
