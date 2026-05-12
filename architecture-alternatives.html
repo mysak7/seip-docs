@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEIP — Technology Alternatives by Layer</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #50e6ff; --green: #3fb950;
+    --yellow: #d29922; --red: #f85149; --orange: #fb8500; --purple: #bc8cff;
+    --teal: #39d353; --azure: #0078d4; --azure-light: #50e6ff;
+    --tag-bg: #0d2a40; --tag-text: #50e6ff;
+    --score-bg: #1c2128;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+  header { background: linear-gradient(135deg, #0d1117 0%, #1a0d2e 60%, #2a0d3a 100%); border-bottom: 1px solid #3a1a5c; padding: 48px 32px 36px; position: relative; overflow: hidden; }
+  header::before { content: ''; position: absolute; top: -80px; right: -80px; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(188,140,255,0.07) 0%, transparent 70%); pointer-events: none; }
+  .header-inner { max-width: 1200px; margin: 0 auto; position: relative; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(188,140,255,0.15); color: var(--purple); border: 1px solid rgba(188,140,255,0.4); padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 14px; }
+  h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.5px; }
+  h1 span { color: var(--purple); }
+  .subtitle { color: var(--muted); font-size: 1.05rem; margin-top: 8px; max-width: 680px; }
+  .meta-row { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
+  .meta-item { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.85rem; }
+  .meta-item strong { color: var(--text); }
+
+  .nav-wrap { background: var(--bg2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  nav { max-width: 1200px; margin: 0 auto; display: flex; gap: 2px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  .tab { padding: 14px 18px; background: none; border: none; cursor: pointer; color: var(--muted); font-size: 0.88rem; font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.18s; display: flex; align-items: center; gap: 7px; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+  .tab-icon { font-size: 15px; }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; color: var(--purple); }
+  h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+  p { color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
+  p strong { color: var(--text); }
+  .section-lead { color: var(--muted); font-size: 0.95rem; margin-bottom: 28px; }
+
+  /* === Alt-option cards === */
+  .alt-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); margin-bottom: 32px; }
+  .alt-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: border-color 0.2s, transform 0.2s; position: relative; }
+  .alt-card:hover { border-color: #484f58; transform: translateY(-2px); }
+  .alt-card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .alt-icon { font-size: 22px; flex-shrink: 0; }
+  .alt-card h3 { margin: 0; font-size: 1rem; color: var(--text); }
+  .alt-card .alt-subtitle { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
+  .alt-card p { font-size: 0.85rem; margin-bottom: 10px; }
+
+  .rec-chip { position: absolute; top: 14px; right: 14px; padding: 2px 9px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .rec-chip.best { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .rec-chip.good { background: rgba(80,230,255,0.12); color: var(--azure-light); border: 1px solid rgba(80,230,255,0.25); }
+  .rec-chip.niche { background: rgba(210,153,34,0.12); color: var(--yellow); border: 1px solid rgba(210,153,34,0.25); }
+  .rec-chip.avoid { background: rgba(248,81,73,0.12); color: var(--red); border: 1px solid rgba(248,81,73,0.25); }
+
+  .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .pros, .cons { border-radius: 7px; padding: 10px 12px; }
+  .pros { background: rgba(63,185,80,0.06); border: 1px solid rgba(63,185,80,0.2); }
+  .cons { background: rgba(248,81,73,0.06); border: 1px solid rgba(248,81,73,0.2); }
+  .pros-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--green); margin-bottom: 5px; }
+  .cons-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--red); margin-bottom: 5px; }
+  .pros ul, .cons ul { padding-left: 14px; }
+  .pros li, .cons li { font-size: 0.8rem; color: var(--muted); margin-bottom: 3px; }
+  .pros li strong { color: var(--green); }
+  .cons li strong { color: var(--red); }
+
+  /* === Comparison table === */
+  .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+  .compare-table th { background: var(--bg3); color: var(--muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 14px; text-align: left; border: 1px solid var(--border); }
+  .compare-table td { padding: 10px 14px; border: 1px solid var(--border); font-size: 0.86rem; color: var(--muted); vertical-align: top; }
+  .compare-table td strong { color: var(--text); }
+  .compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .win { color: var(--green); font-weight: 600; }
+  .lose { color: var(--red); }
+  .neutral { color: var(--yellow); }
+  .az { color: var(--azure-light); font-weight: 600; }
+
+  /* === Score bars === */
+  .score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .score-label { font-size: 0.82rem; color: var(--muted); min-width: 180px; }
+  .score-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 7px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 4px; }
+  .score-fill.g { background: var(--green); }
+  .score-fill.y { background: var(--yellow); }
+  .score-fill.r { background: var(--red); }
+  .score-fill.b { background: var(--azure-light); }
+  .score-fill.p { background: var(--purple); }
+  .score-val { font-size: 0.82rem; color: var(--text); font-weight: 600; min-width: 30px; text-align: right; }
+
+  /* === Cards grid (simple) === */
+  .cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin-bottom: 32px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .card-icon { font-size: 20px; }
+  .card h3 { margin: 0; font-size: 1rem; color: var(--text); }
+  .card p { font-size: 0.875rem; margin-bottom: 0; }
+  .card.accent-green { border-left: 3px solid var(--green); }
+  .card.accent-blue { border-left: 3px solid var(--azure-light); }
+  .card.accent-yellow { border-left: 3px solid var(--yellow); }
+  .card.accent-red { border-left: 3px solid var(--red); }
+  .card.accent-purple { border-left: 3px solid var(--purple); }
+  .card.accent-teal { border-left: 3px solid var(--teal); }
+  .card.accent-orange { border-left: 3px solid var(--orange); }
+
+  /* === Callouts === */
+  .callout { border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start; font-size: 0.88rem; }
+  .callout.info { background: rgba(80,230,255,0.06); border: 1px solid rgba(80,230,255,0.22); color: #a5e8ff; }
+  .callout.warn { background: rgba(210,153,34,0.08); border: 1px solid rgba(210,153,34,0.25); color: #e3c577; }
+  .callout.tip  { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.25); color: #87d99e; }
+  .callout.purple { background: rgba(188,140,255,0.07); border: 1px solid rgba(188,140,255,0.25); color: #d4b8ff; }
+  .callout-icon { font-size: 16px; flex-shrink: 0; padding-top: 1px; }
+  .callout p { margin: 0; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  @media(max-width:700px) { .two-col { grid-template-columns: 1fr; } .pros-cons { grid-template-columns: 1fr; } }
+  .box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .box h4 { font-size: 0.9rem; color: var(--text); margin-bottom: 10px; }
+  .box ul { padding-left: 18px; }
+  .box li { font-size: 0.84rem; color: var(--muted); margin-bottom: 5px; }
+  .box li strong { color: var(--text); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+  .layer-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 14px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 20px; background: rgba(188,140,255,0.1); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+
+  .overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 32px; }
+  .ov-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; cursor: pointer; transition: border-color 0.18s, transform 0.18s; }
+  .ov-card:hover { border-color: var(--purple); transform: translateY(-2px); }
+  .ov-icon { font-size: 28px; margin-bottom: 8px; }
+  .ov-card h4 { font-size: 0.88rem; color: var(--text); margin-bottom: 4px; }
+  .ov-card p { font-size: 0.76rem; margin-bottom: 0; }
+
+  pre { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 0.82rem; color: #a8d3f5; line-height: 1.55; margin-bottom: 20px; }
+  code { font-family: 'SF Mono', 'Consolas', 'Fira Code', monospace; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  @media print { .nav-wrap { position: static; } .panel { display: block !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="badge">Architecture Alternatives</div>
+    <h1><span>SEIP</span> — Technology Alternatives by Layer</h1>
+    <p class="subtitle">For each application layer, a structured comparison of realistic alternatives — including what to use instead of Cosmos DB, Azure Event Hubs, AKS, and more. Each option rated for SEIP's specific workload profile.</p>
+    <div class="meta-row">
+      <div class="meta-item">📅 <strong>May 2026</strong></div>
+      <div class="meta-item">🗄️ <strong>8 Layers Covered</strong></div>
+      <div class="meta-item">☸️ <strong>AWS + Azure + Self-Hosted</strong></div>
+      <div class="meta-item">🎯 <strong>SEIP Workload Context</strong></div>
+    </div>
+  </div>
+</header>
+
+<div class="nav-wrap">
+  <nav id="nav">
+    <button class="tab active" data-panel="overview"><span class="tab-icon">🗺️</span> Overview</button>
+    <button class="tab" data-panel="data"><span class="tab-icon">🗄️</span> Data Layer</button>
+    <button class="tab" data-panel="streaming"><span class="tab-icon">⚡</span> Event Streaming</button>
+    <button class="tab" data-panel="kubernetes"><span class="tab-icon">☸️</span> Kubernetes</button>
+    <button class="tab" data-panel="autoscaling"><span class="tab-icon">📈</span> Autoscaling</button>
+    <button class="tab" data-panel="llm"><span class="tab-icon">🤖</span> LLM / AI</button>
+    <button class="tab" data-panel="identity"><span class="tab-icon">🔑</span> Identity</button>
+    <button class="tab" data-panel="observability"><span class="tab-icon">📊</span> Observability</button>
+    <button class="tab" data-panel="registry"><span class="tab-icon">📦</span> Containers</button>
+  </nav>
+</div>
+
+<main>
+
+<!-- ═══════ OVERVIEW ═══════ -->
+<section class="panel active" id="overview">
+  <h2>Layer Alternatives Overview</h2>
+  <p class="section-lead">SEIP is a multi-layer security event intelligence platform. Each layer has meaningful alternatives that trade off cost, operational burden, performance, and cloud lock-in. Click any layer card to jump to its tab.</p>
+
+  <div class="callout purple">
+    <span class="callout-icon">🔍</span>
+    <p><strong>How to read this doc:</strong> Each layer tab lists 3–5 realistic alternatives to the currently deployed technology (AWS or Azure). Every option gets explicit <strong style="color:var(--green)">pros</strong> and <strong style="color:var(--red)">cons</strong> in the context of SEIP's actual workload — low-frequency Sysmon events, bursty AI workloads, single-region dev deployment.</p>
+  </div>
+
+  <h3>Layers at a Glance</h3>
+  <div class="overview-grid">
+    <div class="ov-card" onclick="switchTab('data')">
+      <div class="ov-icon">🗄️</div>
+      <h4>Data Layer</h4>
+      <p>Cosmos DB vs PostgreSQL, MongoDB, ScyllaDB, Redis</p>
+    </div>
+    <div class="ov-card" onclick="switchTab('streaming')">
+      <div class="ov-icon">⚡</div>
+      <h4>Event Streaming</h4>
+      <p>Event Hubs vs Kafka, Redpanda, NATS, Pulsar</p>
+    </div>
+    <div class="ov-card" onclick="switchTab('kubernetes')">
+      <div class="ov-icon">☸️</div>
+      <h4>Kubernetes</h4>
+      <p>AKS/EKS vs k3s, GKE, Nomad, self-hosted</p>
+    </div>
+    <div class="ov-card" onclick="switchTab('autoscaling')">
+      <div class="ov-icon">📈</div>
+      <h4>Autoscaling</h4>
+      <p>KEDA + Karpenter vs HPA, Cluster Autoscaler, Knative</p>
+    </div>
+    <div class="ov-card" onclick="switchTab('llm')">
+      <div class="ov-icon">🤖</div>
+      <h4>LLM / AI</h4>
+      <p>Azure OpenAI vs Claude API, Ollama, Bedrock, Vertex AI</p>
+    </div>
+    <div class="ov-card" onclick="switchTab('identity')">
+      <div class="ov-icon">🔑</div>
+      <h4>Identity</h4>
+      <p>Managed Identity vs Vault, Keycloak, SPIFFE, cert-manager</p>
+    </div>
+    <div class="ov-card" onclick="switchTab('observability')">
+      <div class="ov-icon">📊</div>
+      <h4>Observability</h4>
+      <p>Azure Monitor vs Grafana stack, ELK, Datadog, OpenTelemetry</p>
+    </div>
+    <div class="ov-card" onclick="switchTab('registry')">
+      <div class="ov-icon">📦</div>
+      <h4>Containers</h4>
+      <p>ACR/ECR vs GHCR, Harbor, Docker Hub, Quay</p>
+    </div>
+  </div>
+
+  <h3>Decision Framework for SEIP</h3>
+  <div class="two-col">
+    <div class="box">
+      <h4>SEIP Workload Profile</h4>
+      <ul>
+        <li><strong>Event volume:</strong> low-to-medium (dev: few 100 events/min)</li>
+        <li><strong>Burst pattern:</strong> bursty AI analysis → scale-to-zero needed</li>
+        <li><strong>Data model:</strong> JSON events with TTL, claim-based processing</li>
+        <li><strong>Teams:</strong> solo/small team — low operational overhead matters</li>
+        <li><strong>Budget:</strong> dev environment — cost sensitivity high</li>
+        <li><strong>Region:</strong> single region, no multi-AZ hard requirement for dev</li>
+        <li><strong>Compliance:</strong> EU data residency preferred</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>What drives the alternatives analysis</h4>
+      <ul>
+        <li><strong>Cosmos DB:</strong> serverless billing can spike unpredictably on dev loads</li>
+        <li><strong>Event Hubs:</strong> minimum 1 TU cost even at zero events</li>
+        <li><strong>AKS free tier:</strong> good for dev, but still needs node VMs</li>
+        <li><strong>Azure OpenAI:</strong> no access to Claude, limited model choice</li>
+        <li><strong>Managed Identity:</strong> Azure-only; breaks portability</li>
+        <li><strong>Azure Monitor:</strong> powerful but expensive at higher ingestion</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Quick Recommendation Summary</h3>
+  <table class="compare-table">
+    <thead>
+      <tr><th>Layer</th><th>Current (AWS)</th><th>Current (Azure)</th><th>Best Alternative</th><th>Why</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Data</strong></td><td>DynamoDB PAY_PER_REQUEST</td><td>Cosmos DB Serverless</td><td class="win">PostgreSQL (Supabase / RDS)</td><td>Predictable cost, rich query, JSON support, no RU surprises</td></tr>
+      <tr><td><strong>Streaming</strong></td><td>MSK / Confluent Cloud</td><td>Azure Event Hubs</td><td class="win">Redpanda (self-hosted)</td><td>Kafka-compatible, zero JVM, runs on 1 vCPU, no minimum cost</td></tr>
+      <tr><td><strong>Kubernetes</strong></td><td>EKS</td><td>AKS</td><td class="neutral">k3s on single VM</td><td>For dev: no control plane cost, full K8s API, Karpenter optional</td></tr>
+      <tr><td><strong>Autoscaling</strong></td><td>KEDA + Karpenter</td><td>KEDA + NAP</td><td class="win">KEDA stays (best fit)</td><td>KEDA is the right tool; swap trigger source not the operator</td></tr>
+      <tr><td><strong>LLM</strong></td><td>Bedrock (Claude)</td><td>Azure OpenAI (GPT-4o)</td><td class="win">Anthropic API direct</td><td>Claude 3.5+ available directly, best reasoning for security analysis</td></tr>
+      <tr><td><strong>Identity</strong></td><td>IAM IRSA</td><td>Workload Identity</td><td class="neutral">HashiCorp Vault + AppRole</td><td>Cloud-agnostic, works in any environment including local dev</td></tr>
+      <tr><td><strong>Observability</strong></td><td>CloudWatch</td><td>Azure Monitor</td><td class="win">Grafana + Prometheus + Loki</td><td>Open-source, zero vendor cost, runs in-cluster, SEIP scale is perfect</td></tr>
+      <tr><td><strong>Registry</strong></td><td>ECR</td><td>ACR</td><td class="win">GHCR (GitHub)</td><td>Free for public/private repos tied to GitHub Actions CI</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ DATA LAYER ═══════ -->
+<section class="panel" id="data">
+  <div class="layer-badge">🗄️ Data Layer</div>
+  <h2>Data Layer Alternatives</h2>
+  <p class="section-lead">SEIP's data model is: JSON security events with TTL, a claim-based "lock" field for deep-mind workers, pattern storage, and cost records. The current stack uses DynamoDB (AWS) or Cosmos DB (Azure). Both charge per-request which can be unpredictable on dev workloads.</p>
+
+  <div class="callout warn">
+    <span class="callout-icon">⚠️</span>
+    <p><strong>Cosmos DB Serverless gotcha for SEIP:</strong> Each write costs ~1 RU/KB. With 200 events/min at 2KB each = ~400 RU/s. Serverless is billed at €0.282/million RU. Sounds cheap — but dev clusters with aggressive re-reads (KEDA polling, Deep Mind loops) can generate 50–100× more RUs than events. Always put a <strong>max RU cap</strong> on serverless or switch to the predictable alternatives below.</p>
+  </div>
+
+  <h3>Alternatives to Cosmos DB / DynamoDB</h3>
+  <div class="alt-grid">
+
+    <div class="alt-card">
+      <span class="rec-chip best">Best Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🐘</span>
+        <div><h3>PostgreSQL</h3><div class="alt-subtitle">RDS / Azure Database / Supabase / self-hosted</div></div>
+      </div>
+      <p>JSONB columns give full document storage with SQL queries. A single <code>security_events</code> table with <code>data JSONB</code> + <code>status TEXT</code> + <code>created_at TIMESTAMPTZ</code> replaces both DynamoDB tables. TTL via <code>pg_cron</code> or a scheduled DELETE.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Predictable cost</strong> — flat instance price</li>
+            <li>Rich SQL queries for seip-manager patterns</li>
+            <li>JSONB indexing (GIN) faster than GSIs</li>
+            <li>Self-hostable; zero lock-in</li>
+            <li>Supabase adds REST API for free</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Schema migration needed</strong> from DynamoDB key model</li>
+            <li>Claim locking needs SELECT FOR UPDATE (not atomic like DynamoDB ConditionExpression)</li>
+            <li>Connection pooling (pgBouncer) needed at scale</li>
+            <li>Single-writer by default (no multi-region writes)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Good Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🍃</span>
+        <div><h3>MongoDB Atlas</h3><div class="alt-subtitle">Serverless or M10 cluster / self-hosted</div></div>
+      </div>
+      <p>Document model is nearly identical to DynamoDB. Atlas Serverless has the same RU-like billing (Request Units) as Cosmos DB but with cleaner SDK. M10 dedicated at $57/mo gives flat cost and 10 GB storage — ideal for SEIP dev volume.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Zero schema migration</strong> — same JSON doc structure</li>
+            <li>Change Streams replace DynamoDB Streams</li>
+            <li>Atlas Search for event pattern queries</li>
+            <li>Multi-cloud (AWS + Azure) deployment</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Serverless RU billing</strong> — same gotcha as Cosmos DB</li>
+            <li>M10 dedicated overkill for current scale</li>
+            <li>Third-party vendor (Atlas); not open-source</li>
+            <li>Claim atomicity: findOneAndUpdate is fine but less obvious</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Good Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">⚡</span>
+        <div><h3>ScyllaDB</h3><div class="alt-subtitle">ScyllaDB Cloud / self-hosted on EC2</div></div>
+      </div>
+      <p>Cassandra-compatible, C++ rewrite. DynamoDB API compatibility layer available. Extremely low latency at high throughput — ideal if SEIP scales to millions of events/hour. For dev scale it is overkill, but makes sense if production targets 50K+ events/min.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>DynamoDB API compatible</strong> — minimal code change</li>
+            <li>10× lower cost vs DynamoDB at high throughput</li>
+            <li>Self-hostable with Terraform</li>
+            <li>Sub-millisecond p99 latency</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Over-engineered for dev scale</strong></li>
+            <li>Cluster ops complexity (multi-node recommended)</li>
+            <li>No serverless / scale-to-zero tier</li>
+            <li>DynamoDB compat layer not 100% feature-parity</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Niche</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔴</span>
+        <div><h3>Redis / Valkey</h3><div class="alt-subtitle">Elasticache / Azure Cache / Upstash / self-hosted</div></div>
+      </div>
+      <p>Not a primary store replacement, but Redis Streams can act as both the event queue AND a temporary event store (TTL natively). Upstash Redis is pay-per-command at $0.2/100K commands — cheaper than DynamoDB at SEIP's dev scale. Use alongside PostgreSQL, not as a standalone replacement.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Upstash: true zero-cost at low volume</strong></li>
+            <li>Redis Streams = Kafka lite for SEIP</li>
+            <li>Native TTL on all keys</li>
+            <li>Atomic SETNX for claim locking</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Memory-only</strong> — not a durable primary store</li>
+            <li>No complex queries without RediSearch</li>
+            <li>Data persistence needs AOF/RDB config</li>
+            <li>Single-purpose — needs a second DB for patterns</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Niche</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🦆</span>
+        <div><h3>DuckDB + S3/Blob</h3><div class="alt-subtitle">Embedded analytics store</div></div>
+      </div>
+      <p>Not a transactional store — but excellent for seip-money cost analysis and seip-manager pattern queries that currently do DynamoDB scans. Embed DuckDB in the Python service, query Parquet files directly from S3/Blob. Replaces expensive full-table scans.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Zero infrastructure cost</strong></li>
+            <li>SQL over Parquet on S3 — no ETL</li>
+            <li>Perfect for seip-money CUR/Cost reports</li>
+            <li>Runs in-process; no network calls</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Read-only analytics</strong> — not for event ingestion</li>
+            <li>Not a DynamoDB replacement; complementary only</li>
+            <li>Concurrent writes not supported</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip avoid">AWS-Only</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔷</span>
+        <div><h3>DynamoDB (keep on AWS)</h3><div class="alt-subtitle">Current AWS deployment</div></div>
+      </div>
+      <p>The existing <code>seip-security-events</code> and <code>seip-patterns</code> tables work well. PAY_PER_REQUEST with the claim-based lock is proven. If staying on AWS, no migration needed. The main risk is RCU/WCU spikes from KEDA polling the UnprocessedEvents count every 30s.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Zero migration cost</strong></li>
+            <li>Atomic ConditionExpression for claim lock</li>
+            <li>DynamoDB Streams → Lambda for future fan-out</li>
+            <li>Single-digit ms latency at any scale</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>AWS vendor lock-in</strong></li>
+            <li>KEDA polling causes steady RCU drain (~$2-5/day dev)</li>
+            <li>Scan operations expensive for analytics</li>
+            <li>No SQL; pattern queries need FilterExpression hacks</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>Migration Path: Cosmos DB → PostgreSQL</h3>
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <p>PostgreSQL with JSONB is the strongest Cosmos DB replacement for SEIP. The claim-locking pattern, TTL, and JSON structure all map cleanly. Here's the target schema:</p>
+  </div>
+  <pre><code>-- security_events table (replaces Cosmos DB security-events container)
+CREATE TABLE security_events (
+    id           TEXT PRIMARY KEY,                 -- partition key: eventId
+    agent_id     TEXT NOT NULL,                    -- sort key: agentId
+    data         JSONB NOT NULL,                   -- full event payload
+    status       TEXT DEFAULT 'unprocessed',       -- claim field
+    claimed_by   TEXT,                             -- deep-mind worker ID
+    claimed_at   TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ DEFAULT now(),
+    ttl_at       TIMESTAMPTZ                       -- pg_cron: DELETE WHERE ttl_at < now()
+);
+
+CREATE INDEX idx_events_status    ON security_events (status) WHERE status = 'unprocessed';
+CREATE INDEX idx_events_agent     ON security_events (agent_id);
+CREATE INDEX idx_events_data      ON security_events USING GIN (data);
+
+-- Atomic claim lock (replaces DynamoDB ConditionExpression)
+UPDATE security_events
+   SET status = 'claimed', claimed_by = $1, claimed_at = now()
+ WHERE id = $2
+   AND status = 'unprocessed'           -- conditional, like ConditionExpression
+RETURNING id;                           -- returns null if already claimed
+
+-- seip-patterns table (replaces seip-patterns container)
+CREATE TABLE patterns (
+    id        TEXT PRIMARY KEY,
+    name      TEXT NOT NULL,
+    rule      JSONB NOT NULL,
+    lua_hash  TEXT,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+</code></pre>
+
+  <h3>Scoring: Data Store Fit for SEIP</h3>
+  <div class="score-row"><div class="score-label">PostgreSQL (JSONB)</div><div class="score-track"><div class="score-fill g" style="width:92%"></div></div><div class="score-val">92</div></div>
+  <div class="score-row"><div class="score-label">MongoDB Atlas (M10)</div><div class="score-track"><div class="score-fill b" style="width:78%"></div></div><div class="score-val">78</div></div>
+  <div class="score-row"><div class="score-label">DynamoDB (keep AWS)</div><div class="score-track"><div class="score-fill b" style="width:74%"></div></div><div class="score-val">74</div></div>
+  <div class="score-row"><div class="score-label">Cosmos DB Serverless</div><div class="score-track"><div class="score-fill y" style="width:65%"></div></div><div class="score-val">65</div></div>
+  <div class="score-row"><div class="score-label">ScyllaDB</div><div class="score-track"><div class="score-fill y" style="width:55%"></div></div><div class="score-val">55</div></div>
+  <div class="score-row"><div class="score-label">Redis Streams (primary)</div><div class="score-track"><div class="score-fill r" style="width:35%"></div></div><div class="score-val">35</div></div>
+</section>
+
+<!-- ═══════ EVENT STREAMING ═══════ -->
+<section class="panel" id="streaming">
+  <div class="layer-badge">⚡ Event Streaming Layer</div>
+  <h2>Event Streaming Alternatives</h2>
+  <p class="section-lead">Sysmon events from Windows agents flow via Fluent Bit to the event broker, then to seip-kafka-consumer. Currently: MSK/Confluent (AWS) or Azure Event Hubs. The consumer is standard <code>confluent-kafka</code> Python — the bootstrap server and credentials are the only config changes.</p>
+
+  <div class="callout info">
+    <span class="callout-icon">ℹ️</span>
+    <p><strong>Key insight for SEIP:</strong> At dev scale (hundreds of events/min), the Kafka protocol overhead is the cost, not the data volume. All alternatives below speak native Kafka protocol — seip-kafka-consumer needs <strong>zero code changes</strong>, only env vars: <code>KAFKA_BOOTSTRAP_SERVERS</code>, <code>KAFKA_SASL_USERNAME</code>, <code>KAFKA_SASL_PASSWORD</code>.</p>
+  </div>
+
+  <h3>Alternatives to Azure Event Hubs / MSK</h3>
+  <div class="alt-grid">
+
+    <div class="alt-card">
+      <span class="rec-chip best">Best Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🐼</span>
+        <div><h3>Redpanda</h3><div class="alt-subtitle">Self-hosted on EC2/VM or Redpanda Cloud Serverless</div></div>
+      </div>
+      <p>Kafka-compatible broker written in C++ (no JVM). Single binary, runs on 1 vCPU / 512MB RAM. Deploy as a Docker container on the existing app VM alongside other SEIP services. Redpanda Cloud Serverless has a free tier (10 GB/month) and charges per GB ingested — at SEIP dev scale, likely <strong>$0/month</strong>.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Zero minimum cost</strong> self-hosted or Cloud free tier</li>
+            <li>Kafka-compatible: zero consumer code change</li>
+            <li>No JVM — runs in 200MB RAM on app VM</li>
+            <li>Redpanda Console UI built-in</li>
+            <li>10× lower latency than Kafka</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Self-hosted = you operate it</strong></li>
+            <li>No SLA for free tier cloud version</li>
+            <li>Small ecosystem vs Apache Kafka</li>
+            <li>Single node = no replication (dev acceptable)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Good Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🚀</span>
+        <div><h3>NATS JetStream</h3><div class="alt-subtitle">Self-hosted; nats.io open-source</div></div>
+      </div>
+      <p>Ultra-lightweight message broker with JetStream persistence layer. Not Kafka-compatible natively — seip-kafka-consumer needs a NATS Python client swap. But NATS server runs in 20MB RAM, has at-least-once delivery, consumer groups (Kafka-equivalent), and TTL on messages.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Lightest footprint</strong> — 20MB RAM server</li>
+            <li>Built-in KV store (replaces some Redis uses)</li>
+            <li>Consumer ack/nack = claim pattern natively</li>
+            <li>Zero external dependencies</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Not Kafka-compatible</strong> — code change in consumer</li>
+            <li>Fluent Bit has no native NATS output plugin</li>
+            <li>Smaller community than Kafka</li>
+            <li>JetStream persistence has different semantics</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Good Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">☕</span>
+        <div><h3>Apache Kafka (KRaft mode)</h3><div class="alt-subtitle">Self-hosted; no ZooKeeper since 3.3+</div></div>
+      </div>
+      <p>The reference implementation. KRaft mode (no ZooKeeper) since Kafka 3.3 makes self-hosting much simpler — single process. Still JVM-based (~500MB RAM). For SEIP, a single-node Kafka in KRaft mode gives production-compatible semantics at dev scale.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Gold standard</strong> — reference for all Kafka tooling</li>
+            <li>KRaft = no ZooKeeper, single binary now</li>
+            <li>Largest ecosystem; Kafka Streams, ksqlDB, Connect</li>
+            <li>Fluent Bit Kafka output is battle-tested</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>JVM: 500MB+ RAM overhead</strong></li>
+            <li>Longer startup time (15–30s)</li>
+            <li>Config complexity vs Redpanda</li>
+            <li>Still needs disk for log storage</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Niche</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🌩️</span>
+        <div><h3>Apache Pulsar</h3><div class="alt-subtitle">Self-hosted / StreamNative Cloud</div></div>
+      </div>
+      <p>Multi-tenant, geo-replicated streaming. Pulsar has a Kafka protocol adapter — seip-kafka-consumer works unchanged. Best use case: if SEIP needs to fan out events to multiple consumer groups independently (e.g., separate consumers per tenant Windows environment).</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Kafka protocol adapter</strong> — zero consumer change</li>
+            <li>Tiered storage (S3/Blob) for cheap long retention</li>
+            <li>Multi-tenant isolation built-in</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Heavy: needs BookKeeper + ZooKeeper</strong></li>
+            <li>3–5 services to operate; overkill for SEIP dev</li>
+            <li>Higher learning curve</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">No-Broker</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔗</span>
+        <div><h3>Direct HTTP / gRPC</h3><div class="alt-subtitle">Fluent Bit HTTP output → FastAPI endpoint</div></div>
+      </div>
+      <p>Skip the broker entirely: Fluent Bit's <code>http</code> output plugin POSTs Sysmon events to a FastAPI endpoint in seip-kafka-consumer. The FastAPI endpoint validates and writes to the data store. Simplest possible architecture — appropriate for very low volume.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Zero broker infrastructure</strong></li>
+            <li>Simplest debug path (curl to test)</li>
+            <li>No Kafka ops at all</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>No replay / retention</strong> — events lost if consumer down</li>
+            <li>No backpressure mechanism</li>
+            <li>Not scalable beyond single consumer</li>
+            <li>Loses Kafka topic fan-out capability</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>Scoring: Streaming Fit for SEIP</h3>
+  <div class="score-row"><div class="score-label">Redpanda (self-hosted)</div><div class="score-track"><div class="score-fill g" style="width:91%"></div></div><div class="score-val">91</div></div>
+  <div class="score-row"><div class="score-label">Kafka KRaft (self-hosted)</div><div class="score-track"><div class="score-fill b" style="width:76%"></div></div><div class="score-val">76</div></div>
+  <div class="score-row"><div class="score-label">Azure Event Hubs</div><div class="score-track"><div class="score-fill b" style="width:70%"></div></div><div class="score-val">70</div></div>
+  <div class="score-row"><div class="score-label">NATS JetStream</div><div class="score-track"><div class="score-fill y" style="width:65%"></div></div><div class="score-val">65</div></div>
+  <div class="score-row"><div class="score-label">Pulsar</div><div class="score-track"><div class="score-fill y" style="width:45%"></div></div><div class="score-val">45</div></div>
+  <div class="score-row"><div class="score-label">Direct HTTP (no broker)</div><div class="score-track"><div class="score-fill r" style="width:30%"></div></div><div class="score-val">30</div></div>
+</section>
+
+<!-- ═══════ KUBERNETES ═══════ -->
+<section class="panel" id="kubernetes">
+  <div class="layer-badge">☸️ Kubernetes Layer</div>
+  <h2>Kubernetes Platform Alternatives</h2>
+  <p class="section-lead">EKS (AWS) and AKS (Azure) host the Orchestrator workloads with Karpenter/KEDA for autoscaling. For dev the control plane cost is the main concern: EKS costs $0.10/hr (~$73/mo) while AKS free tier is truly free but still needs worker node VMs.</p>
+
+  <div class="alt-grid">
+
+    <div class="alt-card">
+      <span class="rec-chip best">Dev Winner</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🪶</span>
+        <div><h3>k3s</h3><div class="alt-subtitle">Rancher Labs — runs on a single VM</div></div>
+      </div>
+      <p>Lightweight certified Kubernetes distribution. Single 70MB binary, runs on the existing app VM (EC2 t4g.small / Azure D2as_v5). No external control plane cost. Full K8s API — Helm, KEDA, and Karpenter-lite via <code>k3s node-driver</code> all work. Perfect for SEIP dev.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Zero control plane cost</strong></li>
+            <li>Runs alongside Docker services on app VM</li>
+            <li>Built-in Traefik ingress, CoreDNS, Helm</li>
+            <li>SQLite etcd (or external Postgres) built-in</li>
+            <li>Full kubectl / Helm compatible</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>No cloud-managed Karpenter</strong> — manual node scaling</li>
+            <li>Single node = no real HA for dev</li>
+            <li>Community support, not cloud SLA</li>
+            <li>Some CNI plugins need manual config</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Cloud Managed</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">☁️</span>
+        <div><h3>GKE Autopilot</h3><div class="alt-subtitle">Google Kubernetes Engine</div></div>
+      </div>
+      <p>GKE's managed Kubernetes with per-pod billing (not per-node). You pay only for the CPU/memory your Pods request — when scaled to zero, cost is zero. Strong Karpenter support. Good option if SEIP moves to GCP (Vertex AI is already used).</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Pay-per-pod — true scale-to-zero cost</strong></li>
+            <li>No node management at all</li>
+            <li>Collocates with Vertex AI (no cross-cloud LLM calls)</li>
+            <li>Workload Identity for GCP SA = IRSA equivalent</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Third cloud provider — more accounts to manage</strong></li>
+            <li>Data stays in GCP region (GDPR consideration)</li>
+            <li>Control plane cost: $0.10/hr (same as EKS)</li>
+            <li>Autopilot restricts some DaemonSet use cases</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Current AWS</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🟠</span>
+        <div><h3>EKS + Karpenter</h3><div class="alt-subtitle">Current AWS deployment</div></div>
+      </div>
+      <p>Managed EKS control plane with Karpenter provisioning Spot EC2. The SEIP-specific <code>NodePool</code> with <code>consolidationPolicy: WhenEmpty</code> scales worker nodes to zero when no Pods run. EKS cost is $0.10/hr regardless of Pods; Karpenter nodes only bill when running.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Karpenter native — best autoscaler for AWS</strong></li>
+            <li>Spot interruption handling built-in</li>
+            <li>IAM IRSA for KEDA permissions</li>
+            <li>CloudWatch metric trigger for KEDA</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>$73/mo control plane cost always-on</strong></li>
+            <li>AWS lock-in for IAM + Karpenter</li>
+            <li>Two-step terraform apply (provider bootstrap)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Current Azure</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔵</span>
+        <div><h3>AKS + Node Auto Provisioning</h3><div class="alt-subtitle">Current Azure deployment</div></div>
+      </div>
+      <p>AKS free tier means zero control plane cost. Node Auto Provisioning (NAP) uses the same Karpenter CRDs — <code>NodePool</code> and <code>AKSNodeClass</code> YAML is nearly identical to the AWS version. Best cloud-managed option for SEIP on Azure.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Free control plane tier</strong></li>
+            <li>NAP = Karpenter CRDs, familiar YAML</li>
+            <li>Workload Identity for KEDA IRSA equivalent</li>
+            <li>Azure Monitor Container Insights built-in</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>NAP still preview in some regions</strong></li>
+            <li>Spot VM interruption via Event Grid (more complex)</li>
+            <li>AKSNodeClass vs EC2NodeClass feature gap</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip avoid">Skip for SEIP</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔶</span>
+        <div><h3>HashiCorp Nomad</h3><div class="alt-subtitle">Self-hosted task scheduler</div></div>
+      </div>
+      <p>Lighter alternative to Kubernetes. Native Docker support, built-in service mesh. No CRD complexity. However KEDA has no Nomad adapter — you would rebuild SEIP's autoscaling from scratch using Nomad's scaling stanzas and HCL policies.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Much simpler than K8s</strong></li>
+            <li>Runs Docker containers natively</li>
+            <li>Single binary, low resource usage</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>No KEDA support</strong> — major rework needed</li>
+            <li>No Karpenter — cloud autoscaling manual</li>
+            <li>Smaller ecosystem; fewer Helm charts</li>
+            <li>HashiCorp BSL license change (2023)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>Scoring: K8s Platform Fit for SEIP</h3>
+  <div class="score-row"><div class="score-label">k3s (dev on app VM)</div><div class="score-track"><div class="score-fill g" style="width:88%"></div></div><div class="score-val">88</div></div>
+  <div class="score-row"><div class="score-label">AKS + NAP (Azure)</div><div class="score-track"><div class="score-fill b" style="width:82%"></div></div><div class="score-val">82</div></div>
+  <div class="score-row"><div class="score-label">GKE Autopilot</div><div class="score-track"><div class="score-fill b" style="width:75%"></div></div><div class="score-val">75</div></div>
+  <div class="score-row"><div class="score-label">EKS + Karpenter (AWS)</div><div class="score-track"><div class="score-fill y" style="width:70%"></div></div><div class="score-val">70</div></div>
+  <div class="score-row"><div class="score-label">Nomad</div><div class="score-track"><div class="score-fill r" style="width:35%"></div></div><div class="score-val">35</div></div>
+</section>
+
+<!-- ═══════ AUTOSCALING ═══════ -->
+<section class="panel" id="autoscaling">
+  <div class="layer-badge">📈 Autoscaling Layer</div>
+  <h2>Autoscaling Alternatives</h2>
+  <p class="section-lead">SEIP uses KEDA to scale the Orchestrator Pods 0→5 based on <code>UnprocessedEvents</code> in CloudWatch/Azure Monitor, and Karpenter/NAP to provision/deprovision EC2/VM nodes when Pods are scheduled. This is the most nuanced layer — the trigger source can be swapped independently of the scaling mechanism.</p>
+
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <p><strong>Separate the concerns:</strong> <strong>Pod autoscaling</strong> (KEDA, HPA, Knative) and <strong>Node autoscaling</strong> (Karpenter, Cluster Autoscaler, NAP) are independent. KEDA is the right answer for pod scaling in SEIP regardless of cloud. The node scaler and trigger source are what changes per environment.</p>
+  </div>
+
+  <h3>Pod Autoscaler Options</h3>
+  <div class="alt-grid">
+
+    <div class="alt-card">
+      <span class="rec-chip best">Best Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🎯</span>
+        <div><h3>KEDA (keep it)</h3><div class="alt-subtitle">Kubernetes Event-Driven Autoscaler v2.16</div></div>
+      </div>
+      <p>KEDA is purpose-built for SEIP's pattern: scale from zero to N based on an external queue depth. The trigger type changes per environment but the operator and <code>ScaledObject</code> YAML stays the same. Swap <code>cloudwatch</code> → <code>azure-monitor</code> → <code>postgresql</code> → <code>prometheus</code> by changing one field.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Scale-to-zero natively</strong> — HPA can't do this</li>
+            <li>40+ trigger sources out of the box</li>
+            <li>PostgreSQL trigger: query <code>COUNT(*) WHERE status='unprocessed'</code></li>
+            <li>Prometheus trigger: read from Grafana stack</li>
+            <li>Works on any K8s: k3s, EKS, AKS, GKE</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Polling interval adds latency to scale-up</strong></li>
+            <li>IRSA/Workload Identity needed per trigger source</li>
+            <li>TriggerAuthentication setup per environment</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Built-in K8s</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">📊</span>
+        <div><h3>HPA + VPA</h3><div class="alt-subtitle">Horizontal + Vertical Pod Autoscaler</div></div>
+      </div>
+      <p>Standard Kubernetes autoscalers. HPA scales on CPU/memory or custom metrics (via metrics-server + Prometheus adapter). VPA right-sizes resource requests. Limitation for SEIP: HPA cannot scale to zero — minimum replica count is 1, which means a running Deep Mind pod even when idle.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Zero extra installation</strong> — built into K8s</li>
+            <li>VPA auto-tunes resource requests</li>
+            <li>No external metric source needed (CPU-based)</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Cannot scale to zero</strong> — always ≥1 pod</li>
+            <li>CPU-based scaling doesn't match SEIP's queue depth model</li>
+            <li>Custom metrics need Prometheus Adapter setup</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Serverless K8s</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🌊</span>
+        <div><h3>Knative Serving + Eventing</h3><div class="alt-subtitle">CNCF serverless layer for Kubernetes</div></div>
+      </div>
+      <p>Knative scales HTTP-based services from 0→N based on concurrent requests. Knative Eventing can subscribe to Kafka/NATS topics and trigger scale-up. For SEIP's Deep Mind pattern (pull-based, not HTTP), Knative Eventing is the right subproject — but adds significant complexity.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>True serverless scale-to-zero</strong></li>
+            <li>Knative Eventing: CloudEvents standard</li>
+            <li>Blue-green traffic splitting built-in</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Complex: Istio or Kourier required</strong></li>
+            <li>Pull-based workers need Eventing (not Serving)</li>
+            <li>SEIP Deep Mind is not HTTP-triggered</li>
+            <li>Heavy: adds 5–10 system pods</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>KEDA Trigger Sources — What to Use Without CloudWatch</h3>
+  <table class="compare-table">
+    <thead>
+      <tr><th>Trigger</th><th>When to Use</th><th>SEIP Config</th><th>Pros</th><th>Cons</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>cloudwatch</strong></td><td>AWS with DynamoDB</td><td>metric: <code>UnprocessedEvents</code>, ns: <code>SEIP/DeepMind</code></td><td class="win">Zero extra infra</td><td class="lose">AWS-only; needs IRSA</td></tr>
+      <tr><td><strong>azure-monitor</strong></td><td>Azure with Cosmos DB</td><td>metric: <code>UnprocessedEvents</code>, ns: <code>SEIPDeepMind</code></td><td class="win">Zero extra infra</td><td class="lose">Azure-only; Workload Identity needed</td></tr>
+      <tr><td><strong>postgresql</strong></td><td>PostgreSQL data store</td><td><code>SELECT COUNT(*) FROM security_events WHERE status='unprocessed'</code></td><td class="win">Cloud-agnostic; direct query</td><td class="neutral">DB connection from KEDA pod</td></tr>
+      <tr><td><strong>prometheus</strong></td><td>Grafana + Prometheus stack</td><td>PromQL: <code>seip_unprocessed_events_total</code></td><td class="win">Works on any K8s; no cloud perm</td><td class="neutral">Needs Prometheus with custom metric</td></tr>
+      <tr><td><strong>kafka</strong></td><td>Redpanda / Kafka broker</td><td>topic lag on <code>seip-events</code> consumer group</td><td class="win">Measures real lag, not a counter</td><td class="neutral">Broker must be reachable from KEDA</td></tr>
+      <tr><td><strong>dynamodb</strong> (streams)</td><td>AWS only</td><td>shard iterator on DynamoDB Streams</td><td class="neutral">Direct DB trigger</td><td class="lose">AWS-only; limited trigger config</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Node Autoscaler Options</h3>
+  <div class="alt-grid">
+    <div class="alt-card">
+      <span class="rec-chip best">AWS</span>
+      <div class="alt-card-top"><span class="alt-icon">⚙️</span><div><h3>Karpenter v1</h3><div class="alt-subtitle">AWS EC2-native node provisioner</div></div></div>
+      <p>Provisions exact EC2 instance types for pending Pods within seconds. WhenEmpty consolidation removes idle nodes. SEIP's <code>NodePool</code> targets <code>t3.micro/t3.small</code> Spot in private subnets, tagged for isolation from the Deep Mind ASG.</p>
+      <div class="pros-cons">
+        <div class="pros"><div class="pros-label">Pros</div><ul><li><strong>Fastest provisioning</strong> (~60s)</li><li>Spot interruption handling via SQS</li><li>EC2NodeClass maps to SEIP's existing VPC</li></ul></div>
+        <div class="cons"><div class="cons-label">Cons</div><ul><li><strong>AWS-only</strong></li><li>IAM roles needed (IRSA)</li><li>OIDC endpoint bootstrap dependency</li></ul></div>
+      </div>
+    </div>
+    <div class="alt-card">
+      <span class="rec-chip best">Azure</span>
+      <div class="alt-card-top"><span class="alt-icon">🔵</span><div><h3>AKS Node Auto Provisioning</h3><div class="alt-subtitle">Karpenter for Azure (NAP)</div></div></div>
+      <p>Same Karpenter CRDs as AWS (<code>NodePool</code>, <code>NodeClaim</code>) but with <code>AKSNodeClass</code> instead of <code>EC2NodeClass</code>. Spot VM interruption via Azure Event Grid → Service Bus. Consolidation policy identical.</p>
+      <div class="pros-cons">
+        <div class="pros"><div class="pros-label">Pros</div><ul><li><strong>Same YAML as AWS Karpenter</strong></li><li>No separate install (AKS built-in)</li><li>Workload Identity for auth</li></ul></div>
+        <div class="cons"><div class="cons-label">Cons</div><ul><li><strong>NAP still preview in some regions</strong></li><li>AKSNodeClass has fewer options than EC2NodeClass</li></ul></div>
+      </div>
+    </div>
+    <div class="alt-card">
+      <span class="rec-chip niche">Classic</span>
+      <div class="alt-card-top"><span class="alt-icon">🔧</span><div><h3>Cluster Autoscaler</h3><div class="alt-subtitle">Cloud-agnostic; works on EKS, AKS, GKE</div></div></div>
+      <p>The original Kubernetes cluster autoscaler. Scales node groups (ASG/VMSS) up/down based on pending Pods and under-utilization. Slower than Karpenter (2–5 min scale-up vs 60s), and cannot scale to zero (ASG minimum=1). Use only if Karpenter is not available.</p>
+      <div class="pros-cons">
+        <div class="pros"><div class="pros-label">Pros</div><ul><li><strong>Works on all clouds</strong></li><li>Stable, mature, well-documented</li><li>No extra CRDs</li></ul></div>
+        <div class="cons"><div class="cons-label">Cons</div><ul><li><strong>Minimum 1 node always running</strong></li><li>2–5 min scale-up latency</li><li>No WhenEmpty consolidation</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ LLM ═══════ -->
+<section class="panel" id="llm">
+  <div class="layer-badge">🤖 LLM / AI Layer</div>
+  <h2>LLM & AI Alternatives</h2>
+  <p class="section-lead">seip-models (port 8184) routes LLM calls. Currently: AWS Bedrock (Claude on AWS), Azure OpenAI (GPT-4o on Azure), plus Vertex AI/Gemini which stay unchanged across both clouds. The model router pattern means swapping providers is a config change, not a code change.</p>
+
+  <div class="callout info">
+    <span class="callout-icon">ℹ️</span>
+    <p><strong>SEIP's LLM workload:</strong> Security event triage — classify Sysmon events as benign/suspicious/critical. Needs strong reasoning for false-positive reduction. Token volume is low (few KB per event) but quality matters. Latency tolerance: 5–30 seconds per event analysis is acceptable.</p>
+  </div>
+
+  <h3>LLM Provider Alternatives</h3>
+  <div class="alt-grid">
+
+    <div class="alt-card">
+      <span class="rec-chip best">Best Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🧠</span>
+        <div><h3>Anthropic API Direct</h3><div class="alt-subtitle">Claude 3.5 Sonnet / Claude 3 Haiku</div></div>
+      </div>
+      <p>Call Anthropic's API directly — no AWS or Azure dependency. Claude 3.5 Sonnet is the best model for security event reasoning today. Claude 3 Haiku for fast triage, Claude 3.5 Sonnet for deep analysis. seip-models already has an Anthropic client; this removes the Bedrock intermediary.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Best reasoning for security triage</strong></li>
+            <li>No cloud infrastructure dependency</li>
+            <li>Haiku: $0.25/M input tokens — cheapest quality option</li>
+            <li>Prompt caching: 90% token savings on repeated system prompts</li>
+            <li>Works from any cloud or local dev</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Not EU-hosted</strong> — data leaves region (GDPR consideration)</li>
+            <li>Third-party API key management needed</li>
+            <li>No VPC-private endpoint (unlike Bedrock)</li>
+            <li>Rate limits on free/low-tier accounts</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Privacy-First</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🏠</span>
+        <div><h3>Ollama (local / in-cluster)</h3><div class="alt-subtitle">LLaMA 3.3, Qwen2.5, Mistral — on-prem inference</div></div>
+      </div>
+      <p>Run open-weight models on the app VM or a GPU node. Ollama serves an OpenAI-compatible API — seip-models can call it with just a base URL change. For SEIP's security use case, models like <code>llama3.3:70b</code> or <code>qwen2.5:32b</code> on a g-series VM give adequate quality for Sysmon triage. No data leaves the VPC.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Data never leaves VPC</strong> — ideal for sensitive events</li>
+            <li>Zero per-token cost after hardware</li>
+            <li>OpenAI-compatible API — minimal code change</li>
+            <li>Runs on ARM64 (t4g.medium or larger)</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Quality gap vs Claude/GPT-4o on complex events</strong></li>
+            <li>GPU VM cost ($0.50–2/hr) can exceed API cost</li>
+            <li>Model download (10–40GB) on first run</li>
+            <li>Latency: 10–60s for 70B models on CPU</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">AWS Option</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🟠</span>
+        <div><h3>AWS Bedrock (Claude)</h3><div class="alt-subtitle">Current AWS deployment</div></div>
+      </div>
+      <p>Bedrock gives VPC-private access to Claude via a VPC endpoint. IAM-auth (IRSA) — no API key needed. Claude 3.5 Sonnet available. The main limitation: not available on Azure, so seip-models needs conditional routing on cloud.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>VPC-private endpoint</strong> — no internet egress</li>
+            <li>IAM auth via IRSA — no key rotation</li>
+            <li>Claude 3.5 Sonnet + Haiku available</li>
+            <li>AWS Cost Explorer integration</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>AWS-only</strong> — breaks Azure portability</li>
+            <li>Bedrock per-token pricing ~same as direct API</li>
+            <li>Latency slightly higher vs direct API</li>
+            <li>Model availability varies by region</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Already Used</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🌐</span>
+        <div><h3>Vertex AI / Gemini</h3><div class="alt-subtitle">Google Cloud — already in seip-models</div></div>
+      </div>
+      <p>Gemini 2.0 Flash and Pro are already in seip-models and work identically on AWS and Azure. Gemini 2.0 Flash is extremely fast and cheap ($0.075/M input tokens). For Sysmon event triage, Flash is often sufficient — keep Sonnet for complex multi-event correlation.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Already deployed in seip-models</strong></li>
+            <li>Cheapest capable model for high-volume triage</li>
+            <li>Long context window (1M tokens)</li>
+            <li>Cloud-agnostic (direct GCP API, no VPC needed)</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Third GCP account to manage</strong></li>
+            <li>Flash: quality gap on complex security reasoning</li>
+            <li>Pro: cost comparable to Claude Sonnet</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Azure Option</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔵</span>
+        <div><h3>Azure OpenAI</h3><div class="alt-subtitle">GPT-4o / GPT-4o-mini — current Azure deployment</div></div>
+      </div>
+      <p>Azure-hosted OpenAI models via Managed Identity (no API key). GPT-4o is strong for security analysis but lacks the specialized reasoning that Claude offers for complex event chains. GPT-4o-mini is the cost-saving fallback, comparable to Gemini Flash in quality.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Managed Identity auth</strong> — no key management</li>
+            <li>EU data residency (germanywestcentral)</li>
+            <li>Private endpoint available</li>
+            <li>GPT-4o strong for structured output (JSON events)</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>No Claude on Azure</strong> — weaker reasoning</li>
+            <li>Quota approval needed for GPT-4o Turbo</li>
+            <li>Azure-only</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Open-Source</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🤗</span>
+        <div><h3>vLLM + HuggingFace Models</h3><div class="alt-subtitle">Self-hosted on GPU node in EKS/AKS</div></div>
+      </div>
+      <p>vLLM serves quantized open-weight models with OpenAI-compatible API. Deploy on a GPU Karpenter node (g4dn.xlarge Spot ~$0.16/hr). Scale to zero when KEDA says no events. Best choice if strong data sovereignty is required and Ollama's single-server model is limiting.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Data sovereignty</strong> + Karpenter scale-to-zero</li>
+            <li>OpenAI-compatible API</li>
+            <li>KEDA can scale vLLM deployment too</li>
+            <li>Spot GPU: very low cost when idle</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>GPU cold start: 3–5 min</strong> to provision node + load model</li>
+            <li>Complex setup vs Ollama</li>
+            <li>Quality still below frontier models</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>Scoring: LLM Fit for SEIP (Security Triage)</h3>
+  <div class="score-row"><div class="score-label">Anthropic API (Claude 3.5 Sonnet)</div><div class="score-track"><div class="score-fill g" style="width:95%"></div></div><div class="score-val">95</div></div>
+  <div class="score-row"><div class="score-label">AWS Bedrock (Claude 3.5 Sonnet)</div><div class="score-track"><div class="score-fill g" style="width:90%"></div></div><div class="score-val">90</div></div>
+  <div class="score-row"><div class="score-label">Vertex AI Gemini 2.0 Flash</div><div class="score-track"><div class="score-fill b" style="width:77%"></div></div><div class="score-val">77</div></div>
+  <div class="score-row"><div class="score-label">Azure OpenAI GPT-4o</div><div class="score-track"><div class="score-fill b" style="width:72%"></div></div><div class="score-val">72</div></div>
+  <div class="score-row"><div class="score-label">Ollama (Qwen2.5 70B)</div><div class="score-track"><div class="score-fill y" style="width:58%"></div></div><div class="score-val">58</div></div>
+  <div class="score-row"><div class="score-label">vLLM (GPU Spot node)</div><div class="score-track"><div class="score-fill y" style="width:55%"></div></div><div class="score-val">55</div></div>
+</section>
+
+<!-- ═══════ IDENTITY ═══════ -->
+<section class="panel" id="identity">
+  <div class="layer-badge">🔑 Identity Layer</div>
+  <h2>Identity & Secrets Alternatives</h2>
+  <p class="section-lead">SEIP uses IAM IRSA (AWS) or Managed Identity + Workload Identity (Azure) for credential-free pod authentication. Secrets (API keys, Lua signing key) live in SSM Parameter Store (AWS) or Key Vault (Azure). The main pain: this is cloud-specific and breaks portability.</p>
+
+  <div class="alt-grid">
+
+    <div class="alt-card">
+      <span class="rec-chip best">Cloud-Agnostic</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🏛️</span>
+        <div><h3>HashiCorp Vault</h3><div class="alt-subtitle">Self-hosted / HCP Vault (managed)</div></div>
+      </div>
+      <p>Central secrets manager that runs anywhere. Vault's Kubernetes Auth method lets pods get short-lived tokens via the K8s service account token — identical pattern to IRSA/Workload Identity, but works on k3s, EKS, AKS, and locally. HCP Vault Dedicated ($0.03/hr) for managed option.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Works on all clouds + local dev</strong></li>
+            <li>Dynamic secrets: Vault generates DB passwords per pod</li>
+            <li>Audit log for every secret access</li>
+            <li>Vault Agent Injector for sidecar injection</li>
+            <li>Transit Engine replaces KMS for Lua signing</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Operational overhead</strong> — must manage Vault cluster</li>
+            <li>HA Vault needs Raft backend (3 nodes)</li>
+            <li>HCP Vault adds $22+/mo cost</li>
+            <li>Initial setup complexity (policies, auth methods)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">K8s Native</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔐</span>
+        <div><h3>External Secrets Operator</h3><div class="alt-subtitle">Syncs cloud secrets into K8s Secrets</div></div>
+      </div>
+      <p>ESO pulls secrets from any provider (AWS SSM, Azure Key Vault, GCP Secret Manager, Vault) and creates native Kubernetes Secrets. Pods just mount standard K8s Secrets — no SDK change. The secret backend is abstracted. Best option when keeping cloud-native backends but wanting a unified K8s API.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Unified K8s Secret API</strong> regardless of backend</li>
+            <li>Works with SSM, Key Vault, Vault simultaneously</li>
+            <li>Secret rotation: ESO re-syncs on TTL</li>
+            <li>No SDK changes in SEIP containers</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Secrets land in etcd</strong> (unless ETCD encryption enabled)</li>
+            <li>Still needs cloud identity (IRSA/Workload Identity) for the ESO pod</li>
+            <li>Extra Helm chart to manage</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Zero-Trust</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🆔</span>
+        <div><h3>SPIFFE / SPIRE</h3><div class="alt-subtitle">CNCF workload identity framework</div></div>
+      </div>
+      <p>SPIFFE assigns cryptographic X.509 SVIDs to workloads by their identity (not their network location). SPIRE is the reference implementation. Each SEIP microservice gets a unique identity like <code>spiffe://seip/deep-mind</code>. mTLS between services is automatic. Replaces both Managed Identity and API keys for inter-service auth.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>True zero-trust between microservices</strong></li>
+            <li>Works on VMs + Kubernetes + containers</li>
+            <li>Auto-rotates certificates (short-lived SVIDs)</li>
+            <li>No cloud dependency</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>High complexity</strong> — mTLS in all seip-* services</li>
+            <li>Requires SPIRE server + agents deployed</li>
+            <li>Overkill for single-region dev environment</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Simple</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔒</span>
+        <div><h3>Sealed Secrets (Bitnami)</h3><div class="alt-subtitle">Encrypted K8s secrets in Git</div></div>
+      </div>
+      <p>Sealed Secrets lets you commit encrypted secrets to Git safely. The SealedSecret controller decrypts them using a cluster-private key at deploy time. Good for small teams — secrets live in the same repo as YAML manifests. No external secret store needed.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Secrets-as-code in Git</strong></li>
+            <li>Zero external dependency</li>
+            <li>Simple: one controller, <code>kubeseal</code> CLI</li>
+            <li>Works on k3s with no cloud identity</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>No dynamic secrets or rotation</strong></li>
+            <li>Cluster key loss = all secrets lost</li>
+            <li>No audit log</li>
+            <li>Manual re-seal when rotating secrets</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════ OBSERVABILITY ═══════ -->
+<section class="panel" id="observability">
+  <div class="layer-badge">📊 Observability Layer</div>
+  <h2>Observability Alternatives</h2>
+  <p class="section-lead">Currently: CloudWatch Logs + Metrics (AWS) or Azure Monitor + Log Analytics (Azure). Both are powerful but expensive at scale and cloud-specific. KEDA reads from these metrics sources — switching observability also means updating the KEDA trigger source.</p>
+
+  <div class="alt-grid">
+
+    <div class="alt-card">
+      <span class="rec-chip best">Best Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">📈</span>
+        <div><h3>Grafana + Prometheus + Loki</h3><div class="alt-subtitle">Open-source observability stack (LGTM)</div></div>
+      </div>
+      <p>The canonical open-source observability stack. Deploy all three in-cluster on k3s or as sidecars. Prometheus scrapes SEIP Python metrics (Flask's <code>/metrics</code> endpoint). Loki collects Docker/Pod logs. Grafana visualizes everything. KEDA <code>prometheus</code> trigger reads directly from Prometheus — no cloud needed.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Zero cost</strong> — runs in-cluster</li>
+            <li>KEDA Prometheus trigger: cloud-agnostic</li>
+            <li>Custom dashboards for SEIP-specific metrics</li>
+            <li>Works identically on AWS, Azure, k3s, local</li>
+            <li>Grafana Alerting replaces CloudWatch Alarms</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Storage: Prometheus TSDB on disk</strong> — needs PV</li>
+            <li>Long retention needs remote_write (Thanos/Mimir)</li>
+            <li>3 extra Helm releases to manage</li>
+            <li>Loki label cardinality limits</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Simple SaaS</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔭</span>
+        <div><h3>Grafana Cloud Free Tier</h3><div class="alt-subtitle">Managed Prometheus + Loki + Tempo</div></div>
+      </div>
+      <p>Grafana Cloud's free tier: 10K active series (Prometheus), 50GB logs/month (Loki), 50GB traces/month (Tempo). SEIP's dev scale fits easily within the free tier. No infrastructure to run — push from in-cluster agents. KEDA needs a remote-read endpoint or a local Prometheus scraping into Cloud.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Free tier covers SEIP dev</strong></li>
+            <li>No storage management</li>
+            <li>Tempo tracing out-of-the-box</li>
+            <li>Cloud-agnostic: push from anywhere</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Data leaves VPC</strong> (GDPR consideration)</li>
+            <li>KEDA still needs local Prometheus or cloud metric</li>
+            <li>Free tier limits (10K series can fill up)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Current Azure</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔵</span>
+        <div><h3>Azure Monitor + Log Analytics</h3><div class="alt-subtitle">Current Azure deployment</div></div>
+      </div>
+      <p>Azure Monitor receives custom metrics from SEIP via the Azure Monitor Ingestion API. Log Analytics Workspace for container logs (Container Insights). KEDA <code>azure-monitor</code> trigger reads the <code>UnprocessedEvents</code> custom metric directly. Tight integration with AKS diagnostic settings.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Deep AKS integration</strong></li>
+            <li>Container Insights auto-installs with AKS</li>
+            <li>KQL queries for complex log analysis</li>
+            <li>Managed Identity auth — no keys</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Cost: $2.30/GB ingested</strong> — expensive at scale</li>
+            <li>Azure-only; breaks portability</li>
+            <li>Custom metric ingestion needs SDK + MI</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">All-in-One</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🐶</span>
+        <div><h3>Datadog</h3><div class="alt-subtitle">Commercial observability platform</div></div>
+      </div>
+      <p>Full-stack observability SaaS. Datadog Agent runs as a DaemonSet on AKS/EKS nodes. Excellent Kubernetes and container insights. KEDA has a Datadog trigger. Cost scales linearly with hosts — SEIP's scale (1–3 nodes) fits the free trial easily but production cost is ~$23/host/month.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Best UI for complex investigation</strong></li>
+            <li>KEDA Datadog trigger available</li>
+            <li>APM + logs + metrics in one product</li>
+            <li>Excellent Sysmon log parsing rules available</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Expensive: $23+/host/month</strong></li>
+            <li>Data leaves VPC (no on-prem option at this tier)</li>
+            <li>Vendor lock-in</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Log-Focused</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔍</span>
+        <div><h3>OpenSearch (self-hosted)</h3><div class="alt-subtitle">Open-source Elasticsearch fork</div></div>
+      </div>
+      <p>OpenSearch + OpenSearch Dashboards replaces the ELK stack (now fully open-source Apache 2.0). Index Sysmon events directly for ad-hoc threat hunting. Complements Prometheus — metrics stay in Prometheus, security events go to OpenSearch for analyst dashboards.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Full-text search on security events</strong></li>
+            <li>Threat hunting: regex across all Sysmon fields</li>
+            <li>Apache 2.0 — no BSL/AGPL restrictions</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Heavy: 2GB+ RAM for single node</strong></li>
+            <li>Not for metrics (use Prometheus instead)</li>
+            <li>Adds another persistent volume requirement</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>Recommended Stack for SEIP (All Environments)</h3>
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <p>Run <strong>Prometheus + Grafana + Loki</strong> in-cluster via <code>kube-prometheus-stack</code> Helm chart. This single chart installs everything. KEDA uses the <code>prometheus</code> trigger pointing to the cluster-local Prometheus. No cloud account needed for observability. Expose Grafana via port-forward or Ingress for the dashboard.</p>
+  </div>
+  <pre><code># Add to seip-infrastructure/k8s/observability/
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --create-namespace \
+  --set prometheus.prometheusSpec.retention=7d \
+  --set grafana.adminPassword=changeme
+
+# KEDA ScaledObject with Prometheus trigger (no cloud needed)
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: orchestrator-scaledobject
+spec:
+  scaleTargetRef:
+    name: seip-orchestrator
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+        metricName: seip_unprocessed_events
+        query: seip_unprocessed_events_total
+        threshold: "30"
+</code></pre>
+</section>
+
+<!-- ═══════ CONTAINER REGISTRY ═══════ -->
+<section class="panel" id="registry">
+  <div class="layer-badge">📦 Container Registry Layer</div>
+  <h2>Container Registry Alternatives</h2>
+  <p class="section-lead">SEIP builds 12 Docker images via GitHub Actions and pushes to ECR (AWS) or ACR (Azure). Currently the registry pull is authenticated via IAM IRSA / Managed Identity — no image pull secrets in pods.</p>
+
+  <div class="alt-grid">
+
+    <div class="alt-card">
+      <span class="rec-chip best">Best Fit</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🐙</span>
+        <div><h3>GitHub Container Registry (GHCR)</h3><div class="alt-subtitle">ghcr.io — free for public + private repos</div></div>
+      </div>
+      <p>GHCR is already where GitHub Actions runs. Push during CI/CD with the <code>GITHUB_TOKEN</code> — no extra credentials. Private images are free for org repos. Works on any Kubernetes cluster via an imagePullSecret or by making images public. Eliminates the ECR/ACR dependency entirely for dev.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Free for private repos on GitHub</strong></li>
+            <li>Zero setup — GITHUB_TOKEN works in Actions</li>
+            <li>Cloud-agnostic: pull from k3s, EKS, AKS equally</li>
+            <li>Linked to GitHub repo for audit trail</li>
+            <li>Packages UI shows image layers and digests</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>imagePullSecret needed</strong> in K8s (unlike IRSA/MI)</li>
+            <li>No scan-on-push (need separate Trivy step)</li>
+            <li>No lifecycle policies (images never auto-delete)</li>
+            <li>Bandwidth: 1GB/month free; then $0.08/GB</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Self-Hosted</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">⚓</span>
+        <div><h3>Harbor</h3><div class="alt-subtitle">CNCF project — self-hosted registry</div></div>
+      </div>
+      <p>Enterprise-grade self-hosted registry with vulnerability scanning (Trivy built-in), RBAC, and policy enforcement. Deploy on the app VM or as a K8s deployment. Stores images in S3/Blob backend. Replication: push to GHCR and replicate to Harbor, or vice versa.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Images stay in VPC</strong></li>
+            <li>Vulnerability scanning built-in (Trivy)</li>
+            <li>Content trust + image signing</li>
+            <li>S3/Blob backend = cheap storage</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Ops overhead</strong> — Harbor is a complex service</li>
+            <li>PostgreSQL + Redis + core services needed</li>
+            <li>Overkill for solo/small team</li>
+            <li>HA setup requires 5+ pods</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Current AWS</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🟠</span>
+        <div><h3>AWS ECR</h3><div class="alt-subtitle">Current AWS deployment</div></div>
+      </div>
+      <p>Private registry in the same region as EKS. IAM pull via IRSA — no imagePullSecret in pods. Scan on push via Inspector. Lifecycle policies auto-clean old images. Cost: $0.10/GB-month storage + standard data transfer.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>IRSA auth — no imagePullSecret</strong></li>
+            <li>Lifecycle rules for auto-cleanup</li>
+            <li>Cross-account replication</li>
+            <li>VPC endpoint for private pulls</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>AWS-only</strong></li>
+            <li>Region-scoped; cross-region pull costs</li>
+            <li>Token refresh every 12h needed for long-running creds</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip good">Current Azure</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🔵</span>
+        <div><h3>Azure Container Registry (ACR)</h3><div class="alt-subtitle">Current Azure deployment</div></div>
+      </div>
+      <p>Standard SKU ACR with Managed Identity pull. AKS attaches the ACR via <code>--attach-acr</code> — no imagePullSecret needed. Defender for Containers for vulnerability scanning. Geo-replication available (Premium SKU).</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Managed Identity pull — no imagePullSecret</strong></li>
+            <li>Defender scan on push</li>
+            <li>Private endpoint support</li>
+            <li>Retention policies via lifecycle rules</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Azure-only</strong></li>
+            <li>Standard SKU: $0.167/day + $0.003/GB storage</li>
+            <li>Geo-replication only on Premium ($0.667/day/replica)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alt-card">
+      <span class="rec-chip niche">Public Images</span>
+      <div class="alt-card-top">
+        <span class="alt-icon">🐳</span>
+        <div><h3>Docker Hub</h3><div class="alt-subtitle">Registry for base images only</div></div>
+      </div>
+      <p>Not recommended for SEIP application images — Docker Hub's free tier has rate limits (100 pulls/6h unauthenticated). However, SEIP's base images (<code>python:3.12-slim</code>, <code>node:20-alpine</code>) come from Docker Hub. Use a pull-through cache in ECR/ACR to avoid rate limits in CI.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <div class="pros-label">Pros</div>
+          <ul>
+            <li><strong>Universal — all base images are here</strong></li>
+            <li>Free for public images</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <div class="cons-label">Cons</div>
+          <ul>
+            <li><strong>Rate limits hit CI pipelines</strong></li>
+            <li>No private images on free tier</li>
+            <li>Use ECR/ACR pull-through cache instead</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>Recommended GitHub Actions Push Pattern (GHCR)</h3>
+  <pre><code># .github/workflows/build.yml
+- name: Log in to GHCR
+  uses: docker/login-action@v3
+  with:
+    registry: ghcr.io
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}  # No extra secrets needed
+
+- name: Build and push seip-orchestrator
+  uses: docker/build-push-action@v5
+  with:
+    context: ./seip-orchestrator
+    push: true
+    tags: ghcr.io/${{ github.repository_owner }}/seip-orchestrator:${{ github.sha }}
+    cache-from: type=gha
+    cache-to: type=gha,mode=max
+
+# K8s imagePullSecret (one-time setup for private GHCR images)
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=mysak7 \
+  --docker-password=$(gh auth token) \
+  --namespace seip
+</code></pre>
+</section>
+
+</main>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+
+  function switchTab(panelId) {
+    tabs.forEach(t => t.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      panel.classList.add('active');
+      const tab = document.querySelector(`[data-panel="${panelId}"]`);
+      if (tab) tab.classList.add('active');
+      window.scrollTo(0, 0);
+    }
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.panel));
+  });
+</script>
+</body>
+</html>
